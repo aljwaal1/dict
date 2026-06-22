@@ -30,6 +30,34 @@ jobs:
           rm -rf test
           flutter pub get
 
+      - name: Force Android SDK 36 compatibility
+        run: |
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+          python3 <<'PYFIX'
+          from pathlib import Path
+          import os, re
+
+          def patch_file(path: Path):
+              if not path.exists():
+                  return
+              text = path.read_text(errors='ignore')
+              text = re.sub(r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36', text)
+              text = re.sub(r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36', text)
+              text = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', text)
+              text = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', text)
+              path.write_text(text)
+
+          # Patch app Gradle files created by Flutter.
+          for rel in ['android/app/build.gradle', 'android/app/build.gradle.kts']:
+              patch_file(Path(rel))
+
+          # Patch Android plugin projects in pub cache, especially file_picker.
+          pub_cache = Path(os.environ.get('PUB_CACHE', str(Path.home()/'.pub-cache')))
+          if pub_cache.exists():
+              for f in pub_cache.rglob('android/build.gradle*'):
+                  patch_file(f)
+          PYFIX
+
       - name: Android package and app name
         run: |
           sed -i "s/applicationId = .*/applicationId = \"com.explapp.qamoosi_school\"/" android/app/build.gradle || true
