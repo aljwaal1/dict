@@ -1,0 +1,65 @@
+name: Build APK Direct
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ "main" ]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+
+      - name: Prepare Android project
+        run: |
+          flutter --version
+          flutter create --platforms=android --org com.explapp .
+          rm -rf test
+          flutter pub get
+
+      - name: Android package and app name
+        run: |
+          sed -i "s/applicationId = .*/applicationId = \"com.explapp.qamoosi_school\"/" android/app/build.gradle || true
+          sed -i "s/applicationId \".*\"/applicationId \"com.explapp.qamoosi_school\"/" android/app/build.gradle || true
+          sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
+
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build APK
+        run: flutter build apk --release
+
+      - name: Copy APK
+        run: |
+          mkdir -p apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
+          cat > DOWNLOAD_APK.md <<'EOF'
+          # تحميل تطبيق قاموسي المدرسي
+
+          بعد نجاح البناء، رابط APK المباشر داخل المستودع:
+
+          `apk/qamoosi-school.apk`
+
+          أو من GitHub:
+
+          `https://github.com/USER/REPO/raw/main/apk/qamoosi-school.apk`
+          EOF
+
+      - name: Commit APK
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: Build qamoosi school APK
+          file_pattern: apk/qamoosi-school.apk DOWNLOAD_APK.md
