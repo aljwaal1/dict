@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 3,
   "app": "قاموسي المدرسي",
   "words": [
     {
@@ -6301,6 +6301,3157 @@
       "word_en": "future plan",
       "meaning_ar": "خطة مستقبلية",
       "source": "Jordanian curriculum starter set"
+    },
+    {
+      "id": 901,
+      "grade": "KG",
+      "word_en": "teddy",
+      "meaning_ar": "دب لعبة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 902,
+      "grade": "KG",
+      "word_en": "kite",
+      "meaning_ar": "طائرة ورقية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 903,
+      "grade": "KG",
+      "word_en": "blocks",
+      "meaning_ar": "مكعبات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 904,
+      "grade": "KG",
+      "word_en": "crayon",
+      "meaning_ar": "قلم تلوين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 905,
+      "grade": "KG",
+      "word_en": "sock",
+      "meaning_ar": "جورب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 906,
+      "grade": "KG",
+      "word_en": "shoe",
+      "meaning_ar": "حذاء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 907,
+      "grade": "KG",
+      "word_en": "brush",
+      "meaning_ar": "فرشاة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 908,
+      "grade": "KG",
+      "word_en": "pants",
+      "meaning_ar": "بنطال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 909,
+      "grade": "KG",
+      "word_en": "scarf",
+      "meaning_ar": "وشاح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 910,
+      "grade": "KG",
+      "word_en": "turtle",
+      "meaning_ar": "سلحفاة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 911,
+      "grade": "KG",
+      "word_en": "ant",
+      "meaning_ar": "نملة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 912,
+      "grade": "KG",
+      "word_en": "nest",
+      "meaning_ar": "عش",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 913,
+      "grade": "KG",
+      "word_en": "shell",
+      "meaning_ar": "صدفة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 914,
+      "grade": "KG",
+      "word_en": "box",
+      "meaning_ar": "صندوق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 915,
+      "grade": "KG",
+      "word_en": "key",
+      "meaning_ar": "مفتاح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 916,
+      "grade": "KG",
+      "word_en": "bell",
+      "meaning_ar": "جرس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 917,
+      "grade": "KG",
+      "word_en": "pink",
+      "meaning_ar": "وردي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 918,
+      "grade": "KG",
+      "word_en": "purple",
+      "meaning_ar": "بنفسجي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 919,
+      "grade": "KG",
+      "word_en": "brown",
+      "meaning_ar": "بني",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 920,
+      "grade": "KG",
+      "word_en": "gray",
+      "meaning_ar": "رمادي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 921,
+      "grade": "KG",
+      "word_en": "triangle",
+      "meaning_ar": "مثلث",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 922,
+      "grade": "KG",
+      "word_en": "smile",
+      "meaning_ar": "ابتسامة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 923,
+      "grade": "KG",
+      "word_en": "hug",
+      "meaning_ar": "عناق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 951,
+      "grade": "1",
+      "word_en": "wake",
+      "meaning_ar": "يستيقظ",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 952,
+      "grade": "1",
+      "word_en": "come",
+      "meaning_ar": "يأتي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 953,
+      "grade": "1",
+      "word_en": "go",
+      "meaning_ar": "يذهب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 954,
+      "grade": "1",
+      "word_en": "see",
+      "meaning_ar": "يرى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 955,
+      "grade": "1",
+      "word_en": "hear",
+      "meaning_ar": "يسمع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 956,
+      "grade": "1",
+      "word_en": "smell",
+      "meaning_ar": "يشم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 957,
+      "grade": "1",
+      "word_en": "touch",
+      "meaning_ar": "يلمس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 958,
+      "grade": "1",
+      "word_en": "paint",
+      "meaning_ar": "يدهن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 959,
+      "grade": "1",
+      "word_en": "lettera",
+      "meaning_ar": "حرف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 960,
+      "grade": "1",
+      "word_en": "toyshop",
+      "meaning_ar": "محل ألعاب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 961,
+      "grade": "1",
+      "word_en": "pet",
+      "meaning_ar": "حيوان أليف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 962,
+      "grade": "1",
+      "word_en": "puppy",
+      "meaning_ar": "جرو",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 963,
+      "grade": "1",
+      "word_en": "kitten",
+      "meaning_ar": "هريرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 964,
+      "grade": "1",
+      "word_en": "uncle",
+      "meaning_ar": "عم أو خال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 965,
+      "grade": "1",
+      "word_en": "aunt",
+      "meaning_ar": "عمة أو خالة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 966,
+      "grade": "1",
+      "word_en": "cousin",
+      "meaning_ar": "ابن العم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 967,
+      "grade": "1",
+      "word_en": "wall",
+      "meaning_ar": "جدار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 968,
+      "grade": "1",
+      "word_en": "roof",
+      "meaning_ar": "سقف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 969,
+      "grade": "1",
+      "word_en": "sofa",
+      "meaning_ar": "أريكة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 970,
+      "grade": "1",
+      "word_en": "carpet",
+      "meaning_ar": "سجادة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 971,
+      "grade": "1",
+      "word_en": "cupboard",
+      "meaning_ar": "خزانة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 972,
+      "grade": "1",
+      "word_en": "gate",
+      "meaning_ar": "بوابة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 973,
+      "grade": "1",
+      "word_en": "path",
+      "meaning_ar": "ممر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 974,
+      "grade": "1",
+      "word_en": "corner",
+      "meaning_ar": "زاوية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1001,
+      "grade": "2",
+      "word_en": "timetable",
+      "meaning_ar": "جدول الحصص",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1002,
+      "grade": "2",
+      "word_en": "subjectbook",
+      "meaning_ar": "كتاب المادة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1003,
+      "grade": "2",
+      "word_en": "storybook",
+      "meaning_ar": "كتاب قصص",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1004,
+      "grade": "2",
+      "word_en": "workbook",
+      "meaning_ar": "كتاب تمارين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1005,
+      "grade": "2",
+      "word_en": "activity",
+      "meaning_ar": "نشاط",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1006,
+      "grade": "2",
+      "word_en": "canteen",
+      "meaning_ar": "مقصف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1007,
+      "grade": "2",
+      "word_en": "lunchbox",
+      "meaning_ar": "علبة طعام",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1008,
+      "grade": "2",
+      "word_en": "hall",
+      "meaning_ar": "قاعة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1009,
+      "grade": "2",
+      "word_en": "lab",
+      "meaning_ar": "مختبر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1010,
+      "grade": "2",
+      "word_en": "tablet",
+      "meaning_ar": "جهاز لوحي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1011,
+      "grade": "2",
+      "word_en": "speaker",
+      "meaning_ar": "مكبر صوت",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1012,
+      "grade": "2",
+      "word_en": "headphones",
+      "meaning_ar": "سماعات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1013,
+      "grade": "2",
+      "word_en": "charger",
+      "meaning_ar": "شاحن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1014,
+      "grade": "2",
+      "word_en": "cable",
+      "meaning_ar": "سلك",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1015,
+      "grade": "2",
+      "word_en": "button",
+      "meaning_ar": "زر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1016,
+      "grade": "2",
+      "word_en": "menu",
+      "meaning_ar": "قائمة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1017,
+      "grade": "2",
+      "word_en": "shape",
+      "meaning_ar": "شكل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1018,
+      "grade": "2",
+      "word_en": "size",
+      "meaning_ar": "حجم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1019,
+      "grade": "2",
+      "word_en": "length",
+      "meaning_ar": "طول",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1020,
+      "grade": "2",
+      "word_en": "width",
+      "meaning_ar": "عرض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1021,
+      "grade": "2",
+      "word_en": "height",
+      "meaning_ar": "ارتفاع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1022,
+      "grade": "2",
+      "word_en": "weight",
+      "meaning_ar": "وزن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1023,
+      "grade": "2",
+      "word_en": "half",
+      "meaning_ar": "نصف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1024,
+      "grade": "2",
+      "word_en": "quarter",
+      "meaning_ar": "ربع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1025,
+      "grade": "2",
+      "word_en": "pair",
+      "meaning_ar": "زوج",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1026,
+      "grade": "2",
+      "word_en": "dozen",
+      "meaning_ar": "دزينة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1027,
+      "grade": "2",
+      "word_en": "queue",
+      "meaning_ar": "طابور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1028,
+      "grade": "2",
+      "word_en": "lineup",
+      "meaning_ar": "اصطفاف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1029,
+      "grade": "2",
+      "word_en": "crossing",
+      "meaning_ar": "ممر عبور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1030,
+      "grade": "2",
+      "word_en": "ambulance",
+      "meaning_ar": "إسعاف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1031,
+      "grade": "2",
+      "word_en": "seatbelt",
+      "meaning_ar": "حزام أمان",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1032,
+      "grade": "2",
+      "word_en": "danger",
+      "meaning_ar": "خطر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1033,
+      "grade": "2",
+      "word_en": "safeplace",
+      "meaning_ar": "مكان آمن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1034,
+      "grade": "2",
+      "word_en": "forestpath",
+      "meaning_ar": "ممر الغابة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1035,
+      "grade": "2",
+      "word_en": "seashore",
+      "meaning_ar": "شاطئ البحر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1036,
+      "grade": "2",
+      "word_en": "pond",
+      "meaning_ar": "بركة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1037,
+      "grade": "2",
+      "word_en": "salty",
+      "meaning_ar": "مالح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1051,
+      "grade": "3",
+      "word_en": "dialogue",
+      "meaning_ar": "حوار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1052,
+      "grade": "3",
+      "word_en": "roleplay",
+      "meaning_ar": "تمثيل أدوار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1053,
+      "grade": "3",
+      "word_en": "noticboard",
+      "meaning_ar": "لوحة إعلانات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1054,
+      "grade": "3",
+      "word_en": "poster",
+      "meaning_ar": "ملصق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1055,
+      "grade": "3",
+      "word_en": "projectwork",
+      "meaning_ar": "عمل مشروع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1056,
+      "grade": "3",
+      "word_en": "partner",
+      "meaning_ar": "شريك",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1057,
+      "grade": "3",
+      "word_en": "classmate",
+      "meaning_ar": "زميل صف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1058,
+      "grade": "3",
+      "word_en": "leader",
+      "meaning_ar": "قائد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1059,
+      "grade": "3",
+      "word_en": "helper",
+      "meaning_ar": "مساعد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1060,
+      "grade": "3",
+      "word_en": "visitorcard",
+      "meaning_ar": "بطاقة زائر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1061,
+      "grade": "3",
+      "word_en": "invitation",
+      "meaning_ar": "دعوة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1062,
+      "grade": "3",
+      "word_en": "picnic",
+      "meaning_ar": "نزهة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1063,
+      "grade": "3",
+      "word_en": "route",
+      "meaning_ar": "مسار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1064,
+      "grade": "3",
+      "word_en": "directionword",
+      "meaning_ar": "كلمة اتجاه",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1065,
+      "grade": "3",
+      "word_en": "north",
+      "meaning_ar": "شمال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1066,
+      "grade": "3",
+      "word_en": "south",
+      "meaning_ar": "جنوب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1067,
+      "grade": "3",
+      "word_en": "east",
+      "meaning_ar": "شرق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1068,
+      "grade": "3",
+      "word_en": "west",
+      "meaning_ar": "غرب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1069,
+      "grade": "3",
+      "word_en": "front",
+      "meaning_ar": "أمام",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1070,
+      "grade": "3",
+      "word_en": "below",
+      "meaning_ar": "تحت",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1071,
+      "grade": "3",
+      "word_en": "around",
+      "meaning_ar": "حول",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1072,
+      "grade": "3",
+      "word_en": "through",
+      "meaning_ar": "خلال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1073,
+      "grade": "3",
+      "word_en": "across",
+      "meaning_ar": "عبر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1074,
+      "grade": "3",
+      "word_en": "care",
+      "meaning_ar": "رعاية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1075,
+      "grade": "3",
+      "word_en": "routine",
+      "meaning_ar": "روتين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1076,
+      "grade": "3",
+      "word_en": "daily",
+      "meaning_ar": "يومي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1077,
+      "grade": "3",
+      "word_en": "weekly",
+      "meaning_ar": "أسبوعي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1078,
+      "grade": "3",
+      "word_en": "usually",
+      "meaning_ar": "عادة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1079,
+      "grade": "3",
+      "word_en": "because",
+      "meaning_ar": "لأن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1080,
+      "grade": "3",
+      "word_en": "however",
+      "meaning_ar": "لكن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1081,
+      "grade": "3",
+      "word_en": "then",
+      "meaning_ar": "ثم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1082,
+      "grade": "3",
+      "word_en": "finally",
+      "meaning_ar": "أخيراً",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1083,
+      "grade": "3",
+      "word_en": "before",
+      "meaning_ar": "قبل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1084,
+      "grade": "3",
+      "word_en": "after",
+      "meaning_ar": "بعد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1085,
+      "grade": "3",
+      "word_en": "enough",
+      "meaning_ar": "كافٍ",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1101,
+      "grade": "4",
+      "word_en": "resourceful",
+      "meaning_ar": "واسع الحيلة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1102,
+      "grade": "4",
+      "word_en": "renewable",
+      "meaning_ar": "متجدد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1103,
+      "grade": "4",
+      "word_en": "nonrenewable",
+      "meaning_ar": "غير متجدد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1104,
+      "grade": "4",
+      "word_en": "solar",
+      "meaning_ar": "شمسي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1105,
+      "grade": "4",
+      "word_en": "windmill",
+      "meaning_ar": "طاحونة هواء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1106,
+      "grade": "4",
+      "word_en": "pollute",
+      "meaning_ar": "يلوث",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1107,
+      "grade": "4",
+      "word_en": "separate",
+      "meaning_ar": "يفصل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1108,
+      "grade": "4",
+      "word_en": "container",
+      "meaning_ar": "وعاء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1109,
+      "grade": "4",
+      "word_en": "package",
+      "meaning_ar": "عبوة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1110,
+      "grade": "4",
+      "word_en": "label",
+      "meaning_ar": "ملصق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1111,
+      "grade": "4",
+      "word_en": "weightscale",
+      "meaning_ar": "ميزان",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1112,
+      "grade": "4",
+      "word_en": "record",
+      "meaning_ar": "يسجل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1113,
+      "grade": "4",
+      "word_en": "symbol",
+      "meaning_ar": "رمز",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1114,
+      "grade": "4",
+      "word_en": "signalword",
+      "meaning_ar": "كلمة إشارة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1115,
+      "grade": "4",
+      "word_en": "hammer",
+      "meaning_ar": "مطرقة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1116,
+      "grade": "4",
+      "word_en": "needle",
+      "meaning_ar": "إبرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1117,
+      "grade": "4",
+      "word_en": "thread",
+      "meaning_ar": "خيط",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1118,
+      "grade": "4",
+      "word_en": "cloth",
+      "meaning_ar": "قماش",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1119,
+      "grade": "4",
+      "word_en": "clay",
+      "meaning_ar": "طين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1120,
+      "grade": "4",
+      "word_en": "brick",
+      "meaning_ar": "طوب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1121,
+      "grade": "4",
+      "word_en": "wire",
+      "meaning_ar": "سلك معدني",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1122,
+      "grade": "4",
+      "word_en": "switch",
+      "meaning_ar": "مفتاح كهرباء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1123,
+      "grade": "4",
+      "word_en": "bulb",
+      "meaning_ar": "مصباح كهربائي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1124,
+      "grade": "4",
+      "word_en": "wheel",
+      "meaning_ar": "عجلة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1125,
+      "grade": "4",
+      "word_en": "axle",
+      "meaning_ar": "محور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1126,
+      "grade": "4",
+      "word_en": "gear",
+      "meaning_ar": "ترس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1127,
+      "grade": "4",
+      "word_en": "magnet",
+      "meaning_ar": "مغناطيس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1128,
+      "grade": "4",
+      "word_en": "shadow",
+      "meaning_ar": "ظل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1129,
+      "grade": "4",
+      "word_en": "reflection",
+      "meaning_ar": "انعكاس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1130,
+      "grade": "4",
+      "word_en": "transparent",
+      "meaning_ar": "شفاف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1131,
+      "grade": "4",
+      "word_en": "opaque",
+      "meaning_ar": "معتم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1132,
+      "grade": "4",
+      "word_en": "chemical",
+      "meaning_ar": "كيميائي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1133,
+      "grade": "4",
+      "word_en": "artificial",
+      "meaning_ar": "صناعي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1134,
+      "grade": "4",
+      "word_en": "ancient",
+      "meaning_ar": "قديم جداً",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1135,
+      "grade": "4",
+      "word_en": "curious",
+      "meaning_ar": "فضولي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1136,
+      "grade": "4",
+      "word_en": "general",
+      "meaning_ar": "عام",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1137,
+      "grade": "4",
+      "word_en": "digitaltool",
+      "meaning_ar": "أداة رقمية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1138,
+      "grade": "4",
+      "word_en": "screenname",
+      "meaning_ar": "اسم الشاشة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1139,
+      "grade": "4",
+      "word_en": "backup",
+      "meaning_ar": "نسخة احتياطية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1140,
+      "grade": "4",
+      "word_en": "login",
+      "meaning_ar": "تسجيل دخول",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1151,
+      "grade": "5",
+      "word_en": "monument",
+      "meaning_ar": "نصب تذكاري",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1152,
+      "grade": "5",
+      "word_en": "landmark",
+      "meaning_ar": "معلم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1153,
+      "grade": "5",
+      "word_en": "archaeology",
+      "meaning_ar": "علم الآثار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1154,
+      "grade": "5",
+      "word_en": "ancestors",
+      "meaning_ar": "الأجداد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1155,
+      "grade": "5",
+      "word_en": "generationword",
+      "meaning_ar": "جيل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1156,
+      "grade": "5",
+      "word_en": "hospitality",
+      "meaning_ar": "ضيافة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1157,
+      "grade": "5",
+      "word_en": "costume",
+      "meaning_ar": "زي تقليدي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1158,
+      "grade": "5",
+      "word_en": "craft",
+      "meaning_ar": "حرفة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1159,
+      "grade": "5",
+      "word_en": "pottery",
+      "meaning_ar": "فخار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1160,
+      "grade": "5",
+      "word_en": "weaving",
+      "meaning_ar": "نسيج",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1161,
+      "grade": "5",
+      "word_en": "spices",
+      "meaning_ar": "بهارات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1162,
+      "grade": "5",
+      "word_en": "ingredient",
+      "meaning_ar": "مكون",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1163,
+      "grade": "5",
+      "word_en": "flavour",
+      "meaning_ar": "نكهة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1164,
+      "grade": "5",
+      "word_en": "traditionalfood",
+      "meaning_ar": "طعام تقليدي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1165,
+      "grade": "5",
+      "word_en": "transport",
+      "meaning_ar": "نقل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1166,
+      "grade": "5",
+      "word_en": "harbor",
+      "meaning_ar": "ميناء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1167,
+      "grade": "5",
+      "word_en": "terminal",
+      "meaning_ar": "محطة نهائية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1168,
+      "grade": "5",
+      "word_en": "reservation",
+      "meaning_ar": "حجز",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1169,
+      "grade": "5",
+      "word_en": "suitcase",
+      "meaning_ar": "حقيبة سفر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1170,
+      "grade": "5",
+      "word_en": "brochure",
+      "meaning_ar": "نشرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1171,
+      "grade": "5",
+      "word_en": "souvenir",
+      "meaning_ar": "تذكار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1172,
+      "grade": "5",
+      "word_en": "currency",
+      "meaning_ar": "عملة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1173,
+      "grade": "5",
+      "word_en": "exchange",
+      "meaning_ar": "تبادل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1174,
+      "grade": "5",
+      "word_en": "receiptword",
+      "meaning_ar": "إيصال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1175,
+      "grade": "5",
+      "word_en": "complaint",
+      "meaning_ar": "شكوى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1176,
+      "grade": "5",
+      "word_en": "request",
+      "meaning_ar": "طلب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1177,
+      "grade": "5",
+      "word_en": "agree",
+      "meaning_ar": "يوافق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1178,
+      "grade": "5",
+      "word_en": "disagree",
+      "meaning_ar": "يختلف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1179,
+      "grade": "5",
+      "word_en": "expect",
+      "meaning_ar": "يتوقع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1180,
+      "grade": "5",
+      "word_en": "suppose",
+      "meaning_ar": "يفترض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1181,
+      "grade": "5",
+      "word_en": "wonder",
+      "meaning_ar": "يتساءل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1182,
+      "grade": "5",
+      "word_en": "explore",
+      "meaning_ar": "يستكشف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1183,
+      "grade": "5",
+      "word_en": "depart",
+      "meaning_ar": "يغادر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1184,
+      "grade": "5",
+      "word_en": "delay",
+      "meaning_ar": "تأخير",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1185,
+      "grade": "5",
+      "word_en": "crowded",
+      "meaning_ar": "مزدحم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1186,
+      "grade": "5",
+      "word_en": "comfortable",
+      "meaning_ar": "مريح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1187,
+      "grade": "5",
+      "word_en": "peaceful",
+      "meaning_ar": "مسالم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1188,
+      "grade": "5",
+      "word_en": "friendly",
+      "meaning_ar": "ودود",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1189,
+      "grade": "5",
+      "word_en": "thankful",
+      "meaning_ar": "شاكر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1190,
+      "grade": "5",
+      "word_en": "proud",
+      "meaning_ar": "فخور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1191,
+      "grade": "5",
+      "word_en": "wise",
+      "meaning_ar": "حكيم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1201,
+      "grade": "6",
+      "word_en": "platform",
+      "meaning_ar": "منصة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1202,
+      "grade": "6",
+      "word_en": "format",
+      "meaning_ar": "صيغة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1203,
+      "grade": "6",
+      "word_en": "link",
+      "meaning_ar": "رابط",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1204,
+      "grade": "6",
+      "word_en": "content",
+      "meaning_ar": "محتوى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1205,
+      "grade": "6",
+      "word_en": "option",
+      "meaning_ar": "خيار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1206,
+      "grade": "6",
+      "word_en": "profile",
+      "meaning_ar": "ملف شخصي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1207,
+      "grade": "6",
+      "word_en": "dashboard",
+      "meaning_ar": "لوحة تحكم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1208,
+      "grade": "6",
+      "word_en": "minimum",
+      "meaning_ar": "حد أدنى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1209,
+      "grade": "6",
+      "word_en": "maximum",
+      "meaning_ar": "حد أقصى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1210,
+      "grade": "6",
+      "word_en": "balance",
+      "meaning_ar": "رصيد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1211,
+      "grade": "6",
+      "word_en": "cash",
+      "meaning_ar": "نقد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1212,
+      "grade": "6",
+      "word_en": "wallet",
+      "meaning_ar": "محفظة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1213,
+      "grade": "6",
+      "word_en": "transfer",
+      "meaning_ar": "حوالة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1214,
+      "grade": "6",
+      "word_en": "deposit",
+      "meaning_ar": "إيداع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1215,
+      "grade": "6",
+      "word_en": "withdraw",
+      "meaning_ar": "سحب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1216,
+      "grade": "6",
+      "word_en": "tax",
+      "meaning_ar": "ضريبة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1217,
+      "grade": "6",
+      "word_en": "salary",
+      "meaning_ar": "راتب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1218,
+      "grade": "6",
+      "word_en": "rent",
+      "meaning_ar": "إيجار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1219,
+      "grade": "6",
+      "word_en": "contract",
+      "meaning_ar": "عقد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1220,
+      "grade": "6",
+      "word_en": "supplier",
+      "meaning_ar": "مورد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1221,
+      "grade": "6",
+      "word_en": "client",
+      "meaning_ar": "عميل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1222,
+      "grade": "6",
+      "word_en": "order",
+      "meaning_ar": "طلبية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1223,
+      "grade": "6",
+      "word_en": "stock",
+      "meaning_ar": "مخزون",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1224,
+      "grade": "6",
+      "word_en": "delivery",
+      "meaning_ar": "توصيل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1225,
+      "grade": "6",
+      "word_en": "shipment",
+      "meaning_ar": "شحنة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1226,
+      "grade": "6",
+      "word_en": "warehouse",
+      "meaning_ar": "مستودع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1227,
+      "grade": "6",
+      "word_en": "target",
+      "meaning_ar": "هدف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1228,
+      "grade": "6",
+      "word_en": "task",
+      "meaning_ar": "مهمة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1229,
+      "grade": "6",
+      "word_en": "deadlineword",
+      "meaning_ar": "موعد تسليم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1230,
+      "grade": "6",
+      "word_en": "agenda",
+      "meaning_ar": "جدول أعمال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1231,
+      "grade": "6",
+      "word_en": "presentationword",
+      "meaning_ar": "عرض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1232,
+      "grade": "6",
+      "word_en": "note",
+      "meaning_ar": "ملاحظة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1233,
+      "grade": "6",
+      "word_en": "comment",
+      "meaning_ar": "تعليق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1234,
+      "grade": "6",
+      "word_en": "feedback",
+      "meaning_ar": "تغذية راجعة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1235,
+      "grade": "6",
+      "word_en": "approve",
+      "meaning_ar": "يوافق رسمياً",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1236,
+      "grade": "6",
+      "word_en": "reject",
+      "meaning_ar": "يرفض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1237,
+      "grade": "6",
+      "word_en": "check",
+      "meaning_ar": "يتحقق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1238,
+      "grade": "6",
+      "word_en": "confirm",
+      "meaning_ar": "يؤكد",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1239,
+      "grade": "6",
+      "word_en": "attach",
+      "meaning_ar": "يرفق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1251,
+      "grade": "7",
+      "word_en": "organism",
+      "meaning_ar": "كائن حي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1252,
+      "grade": "7",
+      "word_en": "microbe",
+      "meaning_ar": "ميكروب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1253,
+      "grade": "7",
+      "word_en": "cell",
+      "meaning_ar": "خلية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1254,
+      "grade": "7",
+      "word_en": "tissue",
+      "meaning_ar": "نسيج حيوي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1255,
+      "grade": "7",
+      "word_en": "breathe",
+      "meaning_ar": "يتنفس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1256,
+      "grade": "7",
+      "word_en": "digest",
+      "meaning_ar": "يهضم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1257,
+      "grade": "7",
+      "word_en": "circulation",
+      "meaning_ar": "دورة دموية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1258,
+      "grade": "7",
+      "word_en": "protein",
+      "meaning_ar": "بروتين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1259,
+      "grade": "7",
+      "word_en": "vitamin",
+      "meaning_ar": "فيتامين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1260,
+      "grade": "7",
+      "word_en": "mineral",
+      "meaning_ar": "معدن غذائي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1261,
+      "grade": "7",
+      "word_en": "fiber",
+      "meaning_ar": "ألياف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1262,
+      "grade": "7",
+      "word_en": "disease",
+      "meaning_ar": "مرض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1263,
+      "grade": "7",
+      "word_en": "symptom",
+      "meaning_ar": "عرض مرضي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1264,
+      "grade": "7",
+      "word_en": "treatment",
+      "meaning_ar": "علاج",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1265,
+      "grade": "7",
+      "word_en": "vaccine",
+      "meaning_ar": "لقاح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1266,
+      "grade": "7",
+      "word_en": "hygiene",
+      "meaning_ar": "نظافة شخصية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1267,
+      "grade": "7",
+      "word_en": "infection",
+      "meaning_ar": "عدوى",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1268,
+      "grade": "7",
+      "word_en": "physics",
+      "meaning_ar": "فيزياء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1269,
+      "grade": "7",
+      "word_en": "chemistry",
+      "meaning_ar": "كيمياء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1270,
+      "grade": "7",
+      "word_en": "biology",
+      "meaning_ar": "أحياء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1271,
+      "grade": "7",
+      "word_en": "atom",
+      "meaning_ar": "ذرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1272,
+      "grade": "7",
+      "word_en": "molecule",
+      "meaning_ar": "جزيء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1273,
+      "grade": "7",
+      "word_en": "reaction",
+      "meaning_ar": "تفاعل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1274,
+      "grade": "7",
+      "word_en": "acid",
+      "meaning_ar": "حمض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1275,
+      "grade": "7",
+      "word_en": "base",
+      "meaning_ar": "قاعدة كيميائية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1276,
+      "grade": "7",
+      "word_en": "friction",
+      "meaning_ar": "احتكاك",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1277,
+      "grade": "7",
+      "word_en": "force",
+      "meaning_ar": "قوة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1278,
+      "grade": "7",
+      "word_en": "velocity",
+      "meaning_ar": "سرعة متجهة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1279,
+      "grade": "7",
+      "word_en": "acceleration",
+      "meaning_ar": "تسارع",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1280,
+      "grade": "7",
+      "word_en": "orbit",
+      "meaning_ar": "مدار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1281,
+      "grade": "7",
+      "word_en": "telescope",
+      "meaning_ar": "تلسكوب",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1282,
+      "grade": "7",
+      "word_en": "microscope",
+      "meaning_ar": "مجهر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1283,
+      "grade": "7",
+      "word_en": "sample",
+      "meaning_ar": "عينة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1284,
+      "grade": "7",
+      "word_en": "variable",
+      "meaning_ar": "متغير",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1285,
+      "grade": "7",
+      "word_en": "control",
+      "meaning_ar": "ضبط",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1286,
+      "grade": "7",
+      "word_en": "tabledata",
+      "meaning_ar": "جدول بيانات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1287,
+      "grade": "7",
+      "word_en": "trend",
+      "meaning_ar": "اتجاه",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1288,
+      "grade": "7",
+      "word_en": "participate",
+      "meaning_ar": "يشارك",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1289,
+      "grade": "7",
+      "word_en": "debate",
+      "meaning_ar": "مناظرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1290,
+      "grade": "7",
+      "word_en": "constitution",
+      "meaning_ar": "دستور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1291,
+      "grade": "7",
+      "word_en": "vote",
+      "meaning_ar": "يصوت",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1292,
+      "grade": "7",
+      "word_en": "representative",
+      "meaning_ar": "ممثل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1293,
+      "grade": "7",
+      "word_en": "ministry",
+      "meaning_ar": "وزارة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1294,
+      "grade": "7",
+      "word_en": "municipality",
+      "meaning_ar": "بلدية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1295,
+      "grade": "7",
+      "word_en": "serviceproject",
+      "meaning_ar": "مشروع خدمة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1296,
+      "grade": "7",
+      "word_en": "initiative",
+      "meaning_ar": "مبادرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1297,
+      "grade": "7",
+      "word_en": "solidarity",
+      "meaning_ar": "تضامن",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1298,
+      "grade": "7",
+      "word_en": "tolerance",
+      "meaning_ar": "تسامح",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1301,
+      "grade": "8",
+      "word_en": "criticalthinking",
+      "meaning_ar": "تفكير نقدي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1302,
+      "grade": "8",
+      "word_en": "problem-solving",
+      "meaning_ar": "حل المشكلات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1303,
+      "grade": "8",
+      "word_en": "collaboration",
+      "meaning_ar": "تعاون جماعي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1304,
+      "grade": "8",
+      "word_en": "self-confidence",
+      "meaning_ar": "ثقة بالنفس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1305,
+      "grade": "8",
+      "word_en": "self-control",
+      "meaning_ar": "ضبط النفس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1306,
+      "grade": "8",
+      "word_en": "time-management",
+      "meaning_ar": "إدارة الوقت",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1307,
+      "grade": "8",
+      "word_en": "decision-making",
+      "meaning_ar": "اتخاذ القرار",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1308,
+      "grade": "8",
+      "word_en": "public-speaking",
+      "meaning_ar": "تحدث أمام الجمهور",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1309,
+      "grade": "8",
+      "word_en": "headline",
+      "meaning_ar": "عنوان خبر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1310,
+      "grade": "8",
+      "word_en": "article",
+      "meaning_ar": "مقال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1311,
+      "grade": "8",
+      "word_en": "sourcecheck",
+      "meaning_ar": "تحقق من المصدر",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1312,
+      "grade": "8",
+      "word_en": "reliable",
+      "meaning_ar": "موثوق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1313,
+      "grade": "8",
+      "word_en": "misleading",
+      "meaning_ar": "مضلل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1314,
+      "grade": "8",
+      "word_en": "evidence-based",
+      "meaning_ar": "مبني على الدليل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1315,
+      "grade": "8",
+      "word_en": "claim",
+      "meaning_ar": "ادعاء",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1316,
+      "grade": "8",
+      "word_en": "opinionword",
+      "meaning_ar": "رأي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1317,
+      "grade": "8",
+      "word_en": "bias",
+      "meaning_ar": "تحيز",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1318,
+      "grade": "8",
+      "word_en": "purpose",
+      "meaning_ar": "غرض",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1319,
+      "grade": "8",
+      "word_en": "tone",
+      "meaning_ar": "نبرة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1320,
+      "grade": "8",
+      "word_en": "context",
+      "meaning_ar": "سياق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1321,
+      "grade": "8",
+      "word_en": "paragraphing",
+      "meaning_ar": "تقسيم الفقرات",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1322,
+      "grade": "8",
+      "word_en": "conclusionword",
+      "meaning_ar": "خاتمة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1323,
+      "grade": "8",
+      "word_en": "quotation",
+      "meaning_ar": "اقتباس",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1324,
+      "grade": "8",
+      "word_en": "citation",
+      "meaning_ar": "توثيق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1325,
+      "grade": "8",
+      "word_en": "academic",
+      "meaning_ar": "أكاديمي",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1326,
+      "grade": "8",
+      "word_en": "professional",
+      "meaning_ar": "مهني",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1327,
+      "grade": "8",
+      "word_en": "career",
+      "meaning_ar": "مهنة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1328,
+      "grade": "8",
+      "word_en": "interviewjob",
+      "meaning_ar": "مقابلة عمل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1329,
+      "grade": "8",
+      "word_en": "qualification",
+      "meaning_ar": "مؤهل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1330,
+      "grade": "8",
+      "word_en": "certificate",
+      "meaning_ar": "شهادة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1331,
+      "grade": "8",
+      "word_en": "portfolio",
+      "meaning_ar": "ملف أعمال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1332,
+      "grade": "8",
+      "word_en": "entrepreneur",
+      "meaning_ar": "رائد أعمال",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1333,
+      "grade": "8",
+      "word_en": "startup",
+      "meaning_ar": "شركة ناشئة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1334,
+      "grade": "8",
+      "word_en": "marketing",
+      "meaning_ar": "تسويق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1335,
+      "grade": "8",
+      "word_en": "advertising",
+      "meaning_ar": "إعلان",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1336,
+      "grade": "8",
+      "word_en": "productivity",
+      "meaning_ar": "إنتاجية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1337,
+      "grade": "8",
+      "word_en": "efficiency",
+      "meaning_ar": "كفاءة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1338,
+      "grade": "8",
+      "word_en": "assessment",
+      "meaning_ar": "تقييم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1339,
+      "grade": "8",
+      "word_en": "improvement",
+      "meaning_ar": "تحسين",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1340,
+      "grade": "8",
+      "word_en": "maintenance",
+      "meaning_ar": "صيانة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1341,
+      "grade": "8",
+      "word_en": "adaptation",
+      "meaning_ar": "تكيف",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1342,
+      "grade": "8",
+      "word_en": "globalization",
+      "meaning_ar": "عولمة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1343,
+      "grade": "8",
+      "word_en": "citizenship",
+      "meaning_ar": "مواطنة",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1344,
+      "grade": "8",
+      "word_en": "humanity",
+      "meaning_ar": "إنسانية",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1345,
+      "grade": "8",
+      "word_en": "ethics",
+      "meaning_ar": "أخلاق",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1346,
+      "grade": "8",
+      "word_en": "respectful",
+      "meaning_ar": "محترم",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1347,
+      "grade": "8",
+      "word_en": "inclusive",
+      "meaning_ar": "شامل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1348,
+      "grade": "8",
+      "word_en": "sustainable",
+      "meaning_ar": "مستدام",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1349,
+      "grade": "8",
+      "word_en": "independent",
+      "meaning_ar": "مستقل",
+      "source": "Jordanian curriculum extended set v3"
+    },
+    {
+      "id": 1350,
+      "grade": "KG",
+      "word_en": "red cup",
+      "meaning_ar": "كوب أحمر",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1351,
+      "grade": "KG",
+      "word_en": "blue shoe",
+      "meaning_ar": "حذاء أزرق",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1352,
+      "grade": "KG",
+      "word_en": "yellow bus",
+      "meaning_ar": "حافلة صفراء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1353,
+      "grade": "KG",
+      "word_en": "green tree",
+      "meaning_ar": "شجرة خضراء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1354,
+      "grade": "KG",
+      "word_en": "little cat",
+      "meaning_ar": "قطة صغيرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1355,
+      "grade": "KG",
+      "word_en": "big dog",
+      "meaning_ar": "كلب كبير",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1356,
+      "grade": "KG",
+      "word_en": "happy face",
+      "meaning_ar": "وجه سعيد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1357,
+      "grade": "KG",
+      "word_en": "small ball",
+      "meaning_ar": "كرة صغيرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1358,
+      "grade": "KG",
+      "word_en": "toy car",
+      "meaning_ar": "سيارة لعبة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1359,
+      "grade": "KG",
+      "word_en": "paper hat",
+      "meaning_ar": "قبعة ورقية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1360,
+      "grade": "KG",
+      "word_en": "soft pillow",
+      "meaning_ar": "وسادة ناعمة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1361,
+      "grade": "KG",
+      "word_en": "warm milk",
+      "meaning_ar": "حليب دافئ",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1362,
+      "grade": "KG",
+      "word_en": "clean hand",
+      "meaning_ar": "يد نظيفة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1363,
+      "grade": "KG",
+      "word_en": "sunny day",
+      "meaning_ar": "يوم مشمس",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1364,
+      "grade": "KG",
+      "word_en": "rainy day",
+      "meaning_ar": "يوم ماطر",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1365,
+      "grade": "KG",
+      "word_en": "white cloud",
+      "meaning_ar": "غيمة بيضاء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1366,
+      "grade": "KG",
+      "word_en": "black cat",
+      "meaning_ar": "قطة سوداء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1367,
+      "grade": "KG",
+      "word_en": "brown bear",
+      "meaning_ar": "دب بني",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1368,
+      "grade": "KG",
+      "word_en": "pink flower",
+      "meaning_ar": "زهرة وردية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1369,
+      "grade": "KG",
+      "word_en": "orange juice",
+      "meaning_ar": "عصير برتقال",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1370,
+      "grade": "KG",
+      "word_en": "school bus",
+      "meaning_ar": "حافلة مدرسية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1371,
+      "grade": "KG",
+      "word_en": "baby duck",
+      "meaning_ar": "بطة صغيرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1372,
+      "grade": "KG",
+      "word_en": "fun game",
+      "meaning_ar": "لعبة ممتعة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1373,
+      "grade": "KG",
+      "word_en": "round ball",
+      "meaning_ar": "كرة مستديرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1374,
+      "grade": "KG",
+      "word_en": "nice toy",
+      "meaning_ar": "لعبة جميلة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1375,
+      "grade": "KG",
+      "word_en": "good boy",
+      "meaning_ar": "ولد جيد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1376,
+      "grade": "KG",
+      "word_en": "good girl",
+      "meaning_ar": "بنت جيدة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1377,
+      "grade": "1",
+      "word_en": "school day",
+      "meaning_ar": "يوم مدرسي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1378,
+      "grade": "1",
+      "word_en": "class bell",
+      "meaning_ar": "جرس الصف",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1379,
+      "grade": "1",
+      "word_en": "new friend",
+      "meaning_ar": "صديق جديد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1380,
+      "grade": "1",
+      "word_en": "my family",
+      "meaning_ar": "عائلتي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1381,
+      "grade": "1",
+      "word_en": "my home",
+      "meaning_ar": "بيتي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1382,
+      "grade": "1",
+      "word_en": "front door",
+      "meaning_ar": "الباب الأمامي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1383,
+      "grade": "1",
+      "word_en": "clean room",
+      "meaning_ar": "غرفة نظيفة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1384,
+      "grade": "1",
+      "word_en": "hot soup",
+      "meaning_ar": "حساء ساخن",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1385,
+      "grade": "1",
+      "word_en": "cold water",
+      "meaning_ar": "ماء بارد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1386,
+      "grade": "1",
+      "word_en": "fresh bread",
+      "meaning_ar": "خبز طازج",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1387,
+      "grade": "1",
+      "word_en": "small shop",
+      "meaning_ar": "متجر صغير",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1388,
+      "grade": "1",
+      "word_en": "bus stop",
+      "meaning_ar": "موقف الحافلة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1389,
+      "grade": "1",
+      "word_en": "safe street",
+      "meaning_ar": "شارع آمن",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1390,
+      "grade": "1",
+      "word_en": "kind teacher",
+      "meaning_ar": "معلم لطيف",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1391,
+      "grade": "1",
+      "word_en": "good student",
+      "meaning_ar": "طالب جيد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1392,
+      "grade": "1",
+      "word_en": "short story",
+      "meaning_ar": "قصة قصيرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1393,
+      "grade": "1",
+      "word_en": "long pencil",
+      "meaning_ar": "قلم طويل",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1394,
+      "grade": "1",
+      "word_en": "red dress",
+      "meaning_ar": "فستان أحمر",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1395,
+      "grade": "1",
+      "word_en": "old chair",
+      "meaning_ar": "كرسي قديم",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1396,
+      "grade": "1",
+      "word_en": "new book",
+      "meaning_ar": "كتاب جديد",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1397,
+      "grade": "1",
+      "word_en": "morning sun",
+      "meaning_ar": "شمس الصباح",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1398,
+      "grade": "1",
+      "word_en": "evening star",
+      "meaning_ar": "نجمة المساء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1399,
+      "grade": "1",
+      "word_en": "family photo",
+      "meaning_ar": "صورة عائلية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1400,
+      "grade": "1",
+      "word_en": "play time",
+      "meaning_ar": "وقت اللعب",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1401,
+      "grade": "1",
+      "word_en": "study time",
+      "meaning_ar": "وقت الدراسة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1402,
+      "grade": "1",
+      "word_en": "quiet voice",
+      "meaning_ar": "صوت هادئ",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1403,
+      "grade": "2",
+      "word_en": "school library",
+      "meaning_ar": "مكتبة المدرسة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1404,
+      "grade": "2",
+      "word_en": "computer room",
+      "meaning_ar": "غرفة الحاسوب",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1405,
+      "grade": "2",
+      "word_en": "science lab",
+      "meaning_ar": "مختبر العلوم",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1406,
+      "grade": "2",
+      "word_en": "class timetable",
+      "meaning_ar": "جدول الصف",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1407,
+      "grade": "2",
+      "word_en": "story page",
+      "meaning_ar": "صفحة قصة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1408,
+      "grade": "2",
+      "word_en": "math lesson",
+      "meaning_ar": "درس رياضيات",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1409,
+      "grade": "2",
+      "word_en": "clean board",
+      "meaning_ar": "لوح نظيف",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1410,
+      "grade": "2",
+      "word_en": "city map",
+      "meaning_ar": "خريطة المدينة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1411,
+      "grade": "2",
+      "word_en": "country flag",
+      "meaning_ar": "علم الدولة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1412,
+      "grade": "2",
+      "word_en": "weather report",
+      "meaning_ar": "تقرير الطقس",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1413,
+      "grade": "2",
+      "word_en": "spring flower",
+      "meaning_ar": "زهرة الربيع",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1414,
+      "grade": "2",
+      "word_en": "winter coat",
+      "meaning_ar": "معطف الشتاء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1415,
+      "grade": "2",
+      "word_en": "sea animal",
+      "meaning_ar": "حيوان بحري",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1416,
+      "grade": "3",
+      "word_en": "reading corner",
+      "meaning_ar": "ركن القراءة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1417,
+      "grade": "3",
+      "word_en": "writing task",
+      "meaning_ar": "مهمة كتابة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1418,
+      "grade": "3",
+      "word_en": "grammar rule",
+      "meaning_ar": "قاعدة نحوية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1419,
+      "grade": "3",
+      "word_en": "spelling test",
+      "meaning_ar": "اختبار تهجئة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1420,
+      "grade": "3",
+      "word_en": "team work",
+      "meaning_ar": "عمل جماعي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1421,
+      "grade": "3",
+      "word_en": "group leader",
+      "meaning_ar": "قائد المجموعة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1422,
+      "grade": "3",
+      "word_en": "class project",
+      "meaning_ar": "مشروع الصف",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1423,
+      "grade": "3",
+      "word_en": "short poem",
+      "meaning_ar": "قصيدة قصيرة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1424,
+      "grade": "3",
+      "word_en": "clear answer",
+      "meaning_ar": "إجابة واضحة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1425,
+      "grade": "3",
+      "word_en": "wrong answer",
+      "meaning_ar": "إجابة خاطئة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1426,
+      "grade": "3",
+      "word_en": "right direction",
+      "meaning_ar": "الاتجاه الصحيح",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1427,
+      "grade": "3",
+      "word_en": "left hand",
+      "meaning_ar": "اليد اليسرى",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1428,
+      "grade": "3",
+      "word_en": "weekly plan",
+      "meaning_ar": "خطة أسبوعية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1429,
+      "grade": "3",
+      "word_en": "daily habit",
+      "meaning_ar": "عادة يومية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1430,
+      "grade": "3",
+      "word_en": "final question",
+      "meaning_ar": "السؤال الأخير",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1431,
+      "grade": "4",
+      "word_en": "solar energy",
+      "meaning_ar": "طاقة شمسية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1432,
+      "grade": "4",
+      "word_en": "wind energy",
+      "meaning_ar": "طاقة الرياح",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1433,
+      "grade": "4",
+      "word_en": "clean environment",
+      "meaning_ar": "بيئة نظيفة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1434,
+      "grade": "4",
+      "word_en": "recycling bin",
+      "meaning_ar": "سلة تدوير",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1435,
+      "grade": "4",
+      "word_en": "plastic bottle",
+      "meaning_ar": "زجاجة بلاستيكية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1436,
+      "grade": "4",
+      "word_en": "paper bag",
+      "meaning_ar": "كيس ورقي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1437,
+      "grade": "4",
+      "word_en": "glass jar",
+      "meaning_ar": "مرطبان زجاجي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1438,
+      "grade": "4",
+      "word_en": "wooden box",
+      "meaning_ar": "صندوق خشبي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1439,
+      "grade": "4",
+      "word_en": "electric switch",
+      "meaning_ar": "مفتاح كهربائي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1440,
+      "grade": "4",
+      "word_en": "digital password",
+      "meaning_ar": "كلمة مرور رقمية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1441,
+      "grade": "5",
+      "word_en": "old castle",
+      "meaning_ar": "قلعة قديمة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1442,
+      "grade": "5",
+      "word_en": "national museum",
+      "meaning_ar": "متحف وطني",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1443,
+      "grade": "5",
+      "word_en": "travel guide",
+      "meaning_ar": "دليل سفر",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1444,
+      "grade": "5",
+      "word_en": "hotel room",
+      "meaning_ar": "غرفة فندق",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1445,
+      "grade": "5",
+      "word_en": "city center",
+      "meaning_ar": "وسط المدينة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1446,
+      "grade": "5",
+      "word_en": "public transport",
+      "meaning_ar": "نقل عام",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1447,
+      "grade": "5",
+      "word_en": "local market",
+      "meaning_ar": "سوق محلي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1448,
+      "grade": "5",
+      "word_en": "family tradition",
+      "meaning_ar": "تقليد عائلي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1449,
+      "grade": "5",
+      "word_en": "special ceremony",
+      "meaning_ar": "مراسم خاصة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1450,
+      "grade": "6",
+      "word_en": "online account",
+      "meaning_ar": "حساب إلكتروني",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1451,
+      "grade": "6",
+      "word_en": "data file",
+      "meaning_ar": "ملف بيانات",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1452,
+      "grade": "6",
+      "word_en": "secure password",
+      "meaning_ar": "كلمة مرور آمنة",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1453,
+      "grade": "6",
+      "word_en": "monthly budget",
+      "meaning_ar": "ميزانية شهرية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1454,
+      "grade": "6",
+      "word_en": "cash payment",
+      "meaning_ar": "دفع نقدي",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1455,
+      "grade": "6",
+      "word_en": "customer service",
+      "meaning_ar": "خدمة العملاء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1456,
+      "grade": "6",
+      "word_en": "business report",
+      "meaning_ar": "تقرير عمل",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1457,
+      "grade": "6",
+      "word_en": "project meeting",
+      "meaning_ar": "اجتماع مشروع",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1458,
+      "grade": "6",
+      "word_en": "stock quantity",
+      "meaning_ar": "كمية المخزون",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1459,
+      "grade": "6",
+      "word_en": "delivery order",
+      "meaning_ar": "طلب توصيل",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1460,
+      "grade": "6",
+      "word_en": "work schedule",
+      "meaning_ar": "جدول عمل",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1461,
+      "grade": "7",
+      "word_en": "food chain",
+      "meaning_ar": "سلسلة غذائية",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1462,
+      "grade": "7",
+      "word_en": "water cycle",
+      "meaning_ar": "دورة الماء",
+      "source": "Jordanian curriculum extended phrases v3"
+    },
+    {
+      "id": 1463,
+      "grade": "8",
+      "word_en": "career goal",
+      "meaning_ar": "هدف مهني",
+      "source": "Jordanian curriculum extended phrases v3"
     }
-  ]
+  ],
+  "total_words": 1350
 }
