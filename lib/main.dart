@@ -170,28 +170,109 @@ class ResultPage extends StatelessWidget{ final Store store; final int total,ok,
 class DifficultPage extends StatelessWidget{ final Store store; const DifficultPage(this.store,{super.key}); @override Widget build(BuildContext c){ final list=store.words.where((w)=>store.difficult.contains('${w.id}')).toList(); return PageFrame(title:'الكلمات الصعبة', child:list.isEmpty?const Center(child:Text('لا توجد كلمات صعبة بعد')):ListView(children:list.map((w)=>WordSearchTile(store:store,word:w)).toList()));}}
 class StatsPage extends StatelessWidget{ final Store store; const StatsPage(this.store,{super.key}); @override Widget build(BuildContext c)=>PageFrame(title:'الإحصائيات', child:ListView(padding:const EdgeInsets.all(16),children:[Card(child:ListTile(title:const Text('النقاط'),trailing:Text(store.points.toStringAsFixed(1)))),Card(child:ListTile(title:const Text('الكلمات الصعبة'),trailing:Text('${store.difficult.length}'))),...gradesList.map((g){final total=store.byGrade(g).length; final done=store.masteredGrade(g); return Card(child:ListTile(title:Text(gradeName(g)),subtitle:LinearProgressIndicator(value:total==0?0:done/total),trailing:Text('$done/$total')));})]));}
 
-class ProfilesPage extends StatefulWidget{ final Store store; const ProfilesPage(this.store,{super.key}); @override State<ProfilesPage> createState()=>_ProfilesPageState();}
+class ProfilesPage extends StatefulWidget{
+  final Store store;
+  const ProfilesPage(this.store,{super.key});
+  @override State<ProfilesPage> createState()=>_ProfilesPageState();
+}
 class _ProfilesPageState extends State<ProfilesPage>{
   Future<void> editProfile(Profile p) async{
     final controller=TextEditingController(text:p.name);
-    final name=await showDialog<String>(context:context,builder:(c)=>AlertDialog(title:const Text('تعديل اسم الملف'),content:TextField(controller:controller,decoration:const InputDecoration(labelText:'اسم الطالب')),actions:[TextButton(onPressed:()=>Navigator.pop(c),child:const Text('إلغاء')),ElevatedButton(onPressed:()=>Navigator.pop(c,controller.text.trim()),child:const Text('حفظ'))]));
-    if(name!=null && name.isNotEmpty){ p.name=name; await widget.store.saveProfiles(); if(mounted)setState((){}); }
+    final name=await showDialog<String>(
+      context:context,
+      builder:(c)=>AlertDialog(
+        title:const Text('تعديل اسم الملف'),
+        content:TextField(controller:controller,decoration:const InputDecoration(labelText:'اسم الطالب')),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(c),child:const Text('إلغاء')),
+          ElevatedButton(onPressed:()=>Navigator.pop(c,controller.text.trim()),child:const Text('حفظ')),
+        ],
+      ),
+    );
+    if(name!=null && name.isNotEmpty){
+      p.name=name;
+      await widget.store.saveProfiles();
+      if(mounted){setState((){});}
+    }
   }
+
   Future<void> deleteProfile(Profile p) async{
-    if(widget.store.profiles.length<=1){ msg(context,'يجب بقاء ملف واحد على الأقل'); return; }
-    final ok=await showDialog<bool>(context:context,builder:(c)=>AlertDialog(title:const Text('حذف الملف؟'),content:Text('سيتم حذف ملف ${p.name} من القائمة. التقدم المرتبط به لن يظهر بعد الحذف.'),actions:[TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('إلغاء')),ElevatedButton(onPressed:()=>Navigator.pop(c,true),child:const Text('حذف'))]));
-    if(ok==true){ widget.store.profiles.removeWhere((x)=>x.id==p.id); if(widget.store.activeProfile==p.id){ await widget.store.setActive(widget.store.profiles.first.id); } await widget.store.saveProfiles(); if(mounted)setState((){}); }
+    if(widget.store.profiles.length<=1){
+      msg(context,'يجب بقاء ملف واحد على الأقل');
+      return;
+    }
+    final ok=await showDialog<bool>(
+      context:context,
+      builder:(c)=>AlertDialog(
+        title:const Text('حذف الملف؟'),
+        content:Text('سيتم حذف ملف ${p.name} من القائمة.'),
+        actions:[
+          TextButton(onPressed:()=>Navigator.pop(c,false),child:const Text('إلغاء')),
+          ElevatedButton(onPressed:()=>Navigator.pop(c,true),child:const Text('حذف')),
+        ],
+      ),
+    );
+    if(ok==true){
+      widget.store.profiles.removeWhere((x)=>x.id==p.id);
+      if(widget.store.activeProfile==p.id){
+        await widget.store.setActive(widget.store.profiles.first.id);
+      }
+      await widget.store.saveProfiles();
+      if(mounted){setState((){});}
+    }
   }
+
   Future<void> addProfile() async{
-    if(widget.store.profiles.length>=3){ msg(context,'الحد الأعلى 3 ملفات فقط'); return; }
-    final nextId=List.generate(3,(i)=>i+1).firstWhere((id)=>!widget.store.profiles.any((p)=>p.id==id),orElse:()=>widget.store.profiles.length+1);
-    final p=Profile(nextId,'الطالب $nextId'); widget.store.profiles.add(p); await widget.store.saveProfiles(); await widget.store.setActive(p.id); if(mounted)setState((){});
+    if(widget.store.profiles.length>=3){
+      msg(context,'الحد الأعلى 3 ملفات فقط');
+      return;
+    }
+    final nextId=List.generate(3,(i)=>i+1).firstWhere(
+      (id)=>!widget.store.profiles.any((p)=>p.id==id),
+      orElse:()=>widget.store.profiles.length+1,
+    );
+    final p=Profile(nextId,'الطالب $nextId');
+    widget.store.profiles.add(p);
+    await widget.store.saveProfiles();
+    await widget.store.setActive(p.id);
+    if(mounted){setState((){});}
   }
-  @override Widget build(BuildContext c)=>PageFrame(title:'الملفات الشخصية', child:ListView(padding:const EdgeInsets.all(16),children:[
-    const Padding(padding:EdgeInsets.all(8),child:Text('اختر ملف الطالب، ويمكنك تعديل الاسم أو حذف الملف. الحد الأعلى 3 ملفات.',style:TextStyle(fontWeight:FontWeight.bold))),
-    ...widget.store.profiles.map((p)=>Card(child:ListTile(leading:Icon(p.id==widget.store.activeProfile?Icons.check_circle:Icons.person,color:p.id==widget.store.activeProfile?Colors.green:null),title:Text(p.name),subtitle:Text(p.id==widget.store.activeProfile?'محدد حالياً':'اضغط لاختياره'),onTap:()async{await widget.store.setActive(p.id); if(mounted)setState((){});},trailing:Wrap(spacing:4,children:[IconButton(tooltip:'تعديل الاسم',icon:const Icon(Icons.edit),onPressed:()=>editProfile(p)),IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline),onPressed:()=>deleteProfile(p))]))),
-    if(widget.store.profiles.length<3)ElevatedButton.icon(onPressed:addProfile,icon:const Icon(Icons.add),label:const Text('إضافة ملف جديد')),
-  ]));
+
+  @override Widget build(BuildContext c)=>PageFrame(
+    title:'الملفات الشخصية',
+    child:ListView(
+      padding:const EdgeInsets.all(16),
+      children:[
+        const Padding(
+          padding:EdgeInsets.all(8),
+          child:Text('اختر ملف الطالب، ويمكنك تعديل الاسم أو حذف الملف. الحد الأعلى 3 ملفات.',style:TextStyle(fontWeight:FontWeight.bold)),
+        ),
+        ...widget.store.profiles.map((p)=>Card(
+          child:ListTile(
+            leading:Icon(
+              p.id==widget.store.activeProfile?Icons.check_circle:Icons.person,
+              color:p.id==widget.store.activeProfile?Colors.green:null,
+            ),
+            title:Text(p.name),
+            subtitle:Text(p.id==widget.store.activeProfile?'محدد حالياً':'اضغط لاختياره'),
+            onTap:()async{
+              await widget.store.setActive(p.id);
+              if(mounted){setState((){});}
+            },
+            trailing:Wrap(
+              spacing:4,
+              children:[
+                IconButton(tooltip:'تعديل الاسم',icon:const Icon(Icons.edit),onPressed:()=>editProfile(p)),
+                IconButton(tooltip:'حذف',icon:const Icon(Icons.delete_outline),onPressed:()=>deleteProfile(p)),
+              ],
+            ),
+          ),
+        )),
+        if(widget.store.profiles.length<3)
+          ElevatedButton.icon(onPressed:addProfile,icon:const Icon(Icons.add),label:const Text('إضافة ملف جديد')),
+      ],
+    ),
+  );
 }
 class SettingsPage extends StatelessWidget{ final Store store; const SettingsPage(this.store,{super.key}); @override Widget build(BuildContext c)=>PageFrame(title:'الإعدادات والتواصل', child:ListView(padding:const EdgeInsets.all(16),children:[SwitchListTile(title:const Text('أصوات الضغط والتفاعل'),value:store.sound,onChanged:(v)async{await store.setSound(v); if(v) await store.successSound();}),Card(child:ListTile(leading:const Icon(Icons.update),title:const Text('تحديث القاموس من GitHub JSON'),subtitle:const Text('الاستيراد المحلي من Excel/PDF يكون بتحويله إلى JSON ثم رفعه على GitHub'),onTap:()async{try{final m=await store.updateFromUrl(); if(c.mounted)msg(c,m);}catch(e){if(c.mounted)msg(c,'فشل التحديث. غيّر رابط JSON داخل main.dart لاحقاً.');}})),Card(child:ListTile(leading:const Icon(Icons.email),title:const Text('إرسال بريد للمطور'),onTap:()=>launchUrl(Uri.parse('mailto:$developerEmail?subject=قاموسي المدرسي')))),Card(child:ListTile(leading:const Icon(Icons.report),title:const Text('اقتراح كلمة / الإبلاغ عن خطأ'),onTap:()=>launchUrl(Uri.parse('mailto:$developerEmail?subject=اقتراح أو تصحيح في قاموسي المدرسي')))),const Padding(padding:EdgeInsets.all(12),child:Text('الإصدار 1.1.0 - أصوات خفيفة - 150 كلمة لكل صف - بدون إشعارات'))]));}
 void msg(BuildContext c,String m)=>ScaffoldMessenger.of(c).showSnackBar(SnackBar(content:Text(m)));
