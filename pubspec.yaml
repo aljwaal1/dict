@@ -1,7 +1,7 @@
 name: qamoosi_school
 description: قاموسي المدرسي - قاموس تعليمي عربي إنجليزي للمنهاج الأردني.
 publish_to: 'none'
-version: 1.1.0+2
+version: 1.2.0+3
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
@@ -15,6 +15,8 @@ dependencies:
   flutter_tts: ^4.0.2
   http: ^1.2.2
   url_launcher: ^6.3.0
+  file_picker: ^8.1.2
+  excel: ^4.0.6
   cupertino_icons: ^1.0.8
 
 dev_dependencies:
