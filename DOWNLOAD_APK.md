@@ -6,4 +6,4 @@
 
 أو من GitHub:
 
-`https://github.com/USER/REPO/raw/main/apk/qamoosi-school.apk`
+`https://github.com/aljwaal1/dict/raw/main/apk/qamoosi-school.apk`
