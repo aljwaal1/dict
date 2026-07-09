@@ -42,67 +42,37 @@ jobs:
                   return
               text = path.read_text(errors='ignore')
               original = text
-              # Groovy DSL forms
               text = re.sub(r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36', text)
               text = re.sub(r'compileSdkVersion\s*=\s*flutter\.compileSdkVersion', 'compileSdkVersion = 36', text)
               text = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', text)
               text = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36', text)
               text = re.sub(r'compileSdk\s+flutter\.compileSdkVersion', 'compileSdk 36', text)
               text = re.sub(r'compileSdk\s+\d+', 'compileSdk 36', text)
-              # Kotlin DSL forms
               text = re.sub(r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36', text)
               text = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', text)
               if text != original:
                   path.write_text(text)
                   print('patched', path)
 
-          # Patch generated app files.
+          # Patch generated app files only by direct replacement.
           for rel in [
               'android/app/build.gradle',
               'android/app/build.gradle.kts',
               'android/build.gradle',
               'android/build.gradle.kts',
+              'android/settings.gradle',
+              'android/settings.gradle.kts',
           ]:
               patch_file(Path(rel))
 
-          # Force all Android subprojects/plugins to compile with SDK 36.
-          root_gradle = Path('android/build.gradle')
-          if root_gradle.exists():
-              text = root_gradle.read_text(errors='ignore')
-              block = '''
-
-          subprojects { subproject ->
-              afterEvaluate {
-                  if (subproject.hasProperty('android')) {
-                      subproject.android.compileSdkVersion 36
-                  }
-              }
-          }
-          '''
-              if 'subproject.android.compileSdkVersion 36' not in text:
-                  root_gradle.write_text(text + block)
-
-          root_gradle_kts = Path('android/build.gradle.kts')
-          if root_gradle_kts.exists():
-              text = root_gradle_kts.read_text(errors='ignore')
-              block = '''
-
-          subprojects {
-              afterEvaluate {
-                  extensions.findByName("android")?.let { androidExt ->
-                      androidExt.javaClass.methods.firstOrNull { it.name == "setCompileSdkVersion" }?.invoke(androidExt, 36)
-                  }
-              }
-          }
-          '''
-              if 'setCompileSdkVersion' not in text:
-                  root_gradle_kts.write_text(text + block)
-
-          # Patch Android plugin projects in Pub cache, especially file_picker and lifecycle.
+          # Patch Android plugin projects in Pub cache before Gradle reads metadata.
           pub_cache = Path(os.environ.get('PUB_CACHE', str(Path.home()/'.pub-cache')))
           if pub_cache.exists():
-              for pattern in ['android/build.gradle', 'android/build.gradle.kts']:
-                  for f in pub_cache.rglob(pattern):
+              for f in pub_cache.rglob('build.gradle'):
+                  if '/android/' in str(f) or str(f).endswith('/android/build.gradle'):
+                      patch_file(f)
+              for f in pub_cache.rglob('build.gradle.kts'):
+                  if '/android/' in str(f) or str(f).endswith('/android/build.gradle.kts'):
                       patch_file(f)
           PYFIX
 
