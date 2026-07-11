@@ -40,18 +40,29 @@ jobs:
           gradle-version: '7.6.4'
 
       - name: Build legacy APK
-        run: gradle -p legacy-android-4.4 clean assembleRelease --stacktrace --no-daemon
+        run: |
+          set -o pipefail
+          gradle -p legacy-android-4.4 clean assembleRelease --stacktrace --info --no-daemon 2>&1 | tee dictionary-build.log
 
       - name: Save APK
         run: |
-          test -f legacy-android-4.4/app/build/outputs/apk/release/app-release.apk
+          APK='legacy-android-4.4/app/build/outputs/apk/release/app-release.apk'
+          test -f "$APK"
           mkdir -p apk
-          cp legacy-android-4.4/app/build/outputs/apk/release/app-release.apk apk/dictionary-android-4.4.apk
+          cp "$APK" apk/dictionary-android-4.4.apk
 
       - uses: actions/upload-artifact@v4
         with:
           name: dictionary-android-4.4
           path: apk/dictionary-android-4.4.apk
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dictionary-android-4.4-build-log
+          path: dictionary-build.log
+          if-no-files-found: ignore
 
       - name: Commit APK
         run: |
