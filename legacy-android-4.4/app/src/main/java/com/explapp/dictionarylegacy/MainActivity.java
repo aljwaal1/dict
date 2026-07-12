@@ -48,6 +48,7 @@ public class MainActivity extends Activity {
     private void base(String section, String hint) {
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.VERTICAL);
+        root.setLayoutDirection(View.LAYOUT_DIRECTION_RTL);
         root.setBackgroundColor(Color.rgb(248, 250, 253));
 
         LinearLayout head = new LinearLayout(this);
