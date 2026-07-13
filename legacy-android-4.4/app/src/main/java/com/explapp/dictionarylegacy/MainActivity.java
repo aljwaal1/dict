@@ -4,8 +4,14 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.ColorFilter;
+import android.graphics.Paint;
+import android.graphics.PixelFormat;
+import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Build;
 import android.os.Bundle;
@@ -593,8 +599,10 @@ public class MainActivity extends Activity {
         button.setTypeface(Typeface.DEFAULT, section == currentSection ? Typeface.BOLD : Typeface.NORMAL);
         button.setAllCaps(false);
         button.setGravity(Gravity.CENTER);
-        button.setCompoundDrawablesWithIntrinsicBounds(0, icon, 0, 0);
-        button.setCompoundDrawablePadding(dp(1));
+        NavGlyph glyph = new NavGlyph(section, section == currentSection ? BLUE : MUTED);
+        glyph.setBounds(0, 0, dp(23), dp(23));
+        button.setCompoundDrawables(null, glyph, null, null);
+        button.setCompoundDrawablePadding(dp(2));
         button.setBackgroundColor(Color.TRANSPARENT);
         button.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
@@ -732,6 +740,36 @@ public class MainActivity extends Activity {
     }
 
     private int dp(int value) { return (int) (value * getResources().getDisplayMetrics().density + .5f); }
+
+    /** Crisp navigation artwork drawn natively so it remains sharp and light on API 19. */
+    private static final class NavGlyph extends Drawable {
+        private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        private final int kind;
+        private final RectF shape = new RectF();
+        NavGlyph(int kind, int color) { this.kind = kind; paint.setColor(color); paint.setStrokeCap(Paint.Cap.ROUND); paint.setStrokeJoin(Paint.Join.ROUND); }
+        @Override public void draw(Canvas canvas) {
+            float w = getBounds().width(), h = getBounds().height();
+            canvas.save(); canvas.translate(getBounds().left, getBounds().top); paint.setStrokeWidth(Math.max(2f, w * .09f)); paint.setStyle(Paint.Style.STROKE);
+            if (kind == 0) {
+                canvas.drawCircle(w * .43f, h * .42f, w * .25f, paint); canvas.drawLine(w * .61f, h * .61f, w * .84f, h * .84f, paint);
+            } else if (kind == 1) {
+                shape.set(w * .18f, h * .20f, w * .70f, h * .78f); canvas.drawRoundRect(shape, w * .08f, w * .08f, paint);
+                shape.set(w * .32f, h * .10f, w * .84f, h * .68f); canvas.drawRoundRect(shape, w * .08f, w * .08f, paint);
+            } else if (kind == 2) {
+                shape.set(w * .16f, h * .12f, w * .84f, h * .88f); canvas.drawRoundRect(shape, w * .08f, w * .08f, paint);
+                canvas.drawLine(w * .29f, h * .48f, w * .43f, h * .61f, paint); canvas.drawLine(w * .43f, h * .61f, w * .70f, h * .34f, paint);
+            } else {
+                paint.setStyle(Paint.Style.FILL);
+                shape.set(w * .15f, h * .58f, w * .31f, h * .86f); canvas.drawRoundRect(shape, w * .04f, w * .04f, paint);
+                shape.set(w * .42f, h * .38f, w * .58f, h * .86f); canvas.drawRoundRect(shape, w * .04f, w * .04f, paint);
+                shape.set(w * .69f, h * .16f, w * .85f, h * .86f); canvas.drawRoundRect(shape, w * .04f, w * .04f, paint);
+            }
+            canvas.restore();
+        }
+        @Override public void setAlpha(int alpha) { paint.setAlpha(alpha); }
+        @Override public void setColorFilter(ColorFilter filter) { paint.setColorFilter(filter); }
+        @Override public int getOpacity() { return PixelFormat.TRANSLUCENT; }
+    }
 
     private void say(String word) {
         if (!ttsReady) {
