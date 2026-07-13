@@ -565,7 +565,7 @@ public class MainActivity extends Activity {
             TextView arabic = text(word.exampleAr, 16, MUTED, Typeface.NORMAL);
             body.addView(arabic);
         }
-        AlertDialog dialog = new AlertDialog.Builder(this)
+        final AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle(word.en + "  •  " + word.ar)
                 .setView(body)
                 .setNegativeButton("إغلاق", null)
