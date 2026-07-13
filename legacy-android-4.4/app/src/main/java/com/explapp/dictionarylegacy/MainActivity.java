@@ -85,12 +85,20 @@ public class MainActivity extends Activity {
         String en;
         String ar;
         String grade;
+        String exampleEn;
+        String exampleAr;
 
         Word(int id, String en, String ar, String grade) {
+            this(id, en, ar, grade, "", "");
+        }
+
+        Word(int id, String en, String ar, String grade, String exampleEn, String exampleAr) {
             this.id = id;
             this.en = en;
             this.ar = ar;
             this.grade = grade;
+            this.exampleEn = exampleEn == null ? "" : exampleEn;
+            this.exampleAr = exampleAr == null ? "" : exampleAr;
         }
     }
 
@@ -221,7 +229,11 @@ public class MainActivity extends Activity {
         ArrayList<Word> result = new ArrayList<Word>();
         for (Word word : words) {
             if (!"الكل".equals(grade) && !grade.equals(word.grade)) continue;
-            if (normalizedQuery.length() > 0 && !normalize(word.en).contains(normalizedQuery) && !normalize(word.ar).contains(normalizedQuery)) continue;
+            if (normalizedQuery.length() > 0
+                    && !normalize(word.en).contains(normalizedQuery)
+                    && !normalize(word.ar).contains(normalizedQuery)
+                    && !normalize(word.exampleEn).contains(normalizedQuery)
+                    && !normalize(word.exampleAr).contains(normalizedQuery)) continue;
             result.add(word);
         }
         return result;
@@ -274,6 +286,15 @@ public class MainActivity extends Activity {
             public void onClick(View view) { toggleDifficult(word); renderWords(); }
         });
         actions.addView(difficultButton, new LinearLayout.LayoutParams(0, dp(44), 1));
+        if (hasExample(word)) {
+            Button example = smallAction("مثال الجملة", MINT, GREEN);
+            example.setOnClickListener(new View.OnClickListener() {
+                public void onClick(View view) { showWordExample(word); }
+            });
+            LinearLayout.LayoutParams exampleParams = new LinearLayout.LayoutParams(0, dp(44), 1);
+            exampleParams.setMargins(dp(7), 0, 0, 0);
+            actions.addView(example, exampleParams);
+        }
         card.addView(actions);
         return elevated(card);
     }
@@ -305,11 +326,24 @@ public class MainActivity extends Activity {
         card.addView(wordText, lp(-1, -2));
         final TextView answer = text("اضغط لإظهار المعنى", 18, BLUE, Typeface.BOLD);
         answer.setGravity(Gravity.CENTER);
-        card.addView(answer, lp(-1, -2, 0, 0, 18, 0, 18));
+        card.addView(answer, lp(-1, -2, 0, 0, 18, 0, 8));
+        final TextView example = text("", 15, MUTED, Typeface.NORMAL);
+        example.setGravity(Gravity.CENTER);
+        example.setTextDirection(View.TEXT_DIRECTION_LTR);
+        example.setVisibility(View.GONE);
+        example.setBackground(round(Color.rgb(246, 249, 252), 10));
+        example.setPadding(dp(10), dp(9), dp(10), dp(9));
+        card.addView(example, lp(-1, -2, 0, 0, 2, 0, 12));
         Button reveal = primaryButton("إظهار المعنى والاستماع");
         reveal.setOnClickListener(new View.OnClickListener() {
             public void onClick(View view) {
                 answer.setText(word.ar);
+                if (hasExample(word)) {
+                    String exampleText = word.exampleEn;
+                    if (!TextUtils.isEmpty(word.exampleAr)) exampleText += "\n" + word.exampleAr;
+                    example.setText(exampleText);
+                    example.setVisibility(View.VISIBLE);
+                }
                 say(word.en);
                 answer.setAlpha(0f);
                 answer.animate().alpha(1f).setDuration(160).start();
@@ -345,7 +379,8 @@ public class MainActivity extends Activity {
             int completed = masteredCount(grade);
             LinearLayout row = card();
             TextView label = text(gradeLabels[i], 18, NAVY, Typeface.BOLD);
-            TextView detail = text(completed + " من 150 كلمة متقنة", 13, MUTED, Typeface.NORMAL);
+            int total = gradeWordCount(grade);
+            TextView detail = text(completed + " من " + total + " كلمة متقنة", 13, MUTED, Typeface.NORMAL);
             row.addView(label);
             row.addView(detail, lp(-1, -2, 0, 0, 3, 0, 8));
             Button start = primaryButton("ابدأ الاختبار");
@@ -492,15 +527,16 @@ public class MainActivity extends Activity {
         for (int i = 1; i < gradeKeys.length; i++) {
             String grade = gradeKeys[i];
             int done = masteredCount(grade);
+            int total = gradeWordCount(grade);
             LinearLayout progress = card();
             LinearLayout row = new LinearLayout(this);
             TextView gradeName = text(gradeLabels[i], 16, NAVY, Typeface.BOLD);
-            TextView count = text(done + " / 150", 14, MUTED, Typeface.BOLD);
+            TextView count = text(done + " / " + total, 14, MUTED, Typeface.BOLD);
             count.setGravity(Gravity.LEFT);
             row.addView(gradeName, new LinearLayout.LayoutParams(0, -2, 1));
             row.addView(count, new LinearLayout.LayoutParams(0, -2, 1));
             progress.addView(row);
-            progress.addView(progressBar(done / 150f), lp(-1, dp(8), 0, 0, 9, 0, 0));
+            progress.addView(progressBar(total == 0 ? 0f : done / (float) total), lp(-1, dp(8), 0, 0, 9, 0, 0));
             content.addView(elevated(progress), lp(-1, -2, 0, 0, 0, 0, 7));
         }
         Button difficult = coloredButton("مراجعة الكلمات الصعبة", AMBER);
@@ -510,6 +546,39 @@ public class MainActivity extends Activity {
         reset.setTextColor(RED);
         reset.setOnClickListener(new View.OnClickListener() { public void onClick(View view) { confirmReset(); } });
         content.addView(reset, lp(-1, dp(50), 0, 0, 0, 0, 4));
+    }
+
+    private boolean hasExample(Word word) {
+        return !TextUtils.isEmpty(word.exampleEn) || !TextUtils.isEmpty(word.exampleAr);
+    }
+
+    private void showWordExample(final Word word) {
+        LinearLayout body = new LinearLayout(this);
+        body.setOrientation(LinearLayout.VERTICAL);
+        body.setPadding(dp(20), dp(4), dp(20), 0);
+        if (!TextUtils.isEmpty(word.exampleEn)) {
+            TextView english = text(word.exampleEn, 17, NAVY, Typeface.BOLD);
+            english.setTextDirection(View.TEXT_DIRECTION_LTR);
+            body.addView(english, lp(-1, -2, 0, 0, 4, 0, 8));
+        }
+        if (!TextUtils.isEmpty(word.exampleAr)) {
+            TextView arabic = text(word.exampleAr, 16, MUTED, Typeface.NORMAL);
+            body.addView(arabic);
+        }
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setTitle(word.en + "  •  " + word.ar)
+                .setView(body)
+                .setNegativeButton("إغلاق", null)
+                .setPositiveButton("استمع", null)
+                .create();
+        dialog.setOnShowListener(new DialogInterface.OnShowListener() {
+            public void onShow(DialogInterface ignored) {
+                dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(new View.OnClickListener() {
+                    public void onClick(View view) { say(TextUtils.isEmpty(word.exampleEn) ? word.en : word.exampleEn); }
+                });
+            }
+        });
+        dialog.show();
     }
 
     private void showDifficultCards() {
@@ -810,6 +879,12 @@ public class MainActivity extends Activity {
         return count;
     }
 
+    private int gradeWordCount(String grade) {
+        int count = 0;
+        for (Word word : words) if (grade.equals(word.grade)) count++;
+        return count;
+    }
+
     private String gradeName(String key) {
         for (int i = 0; i < gradeKeys.length; i++) if (gradeKeys[i].equals(key)) return gradeLabels[i];
         return "الصف " + key;
@@ -838,13 +913,21 @@ public class MainActivity extends Activity {
                 String en = item.optString("word_en").trim();
                 String ar = item.optString("meaning_ar").trim();
                 String grade = item.optString("grade").trim();
+                String exampleEn = firstNonEmpty(item.optString("example_en"), item.optString("example_sentence"), item.optString("sentence_en"));
+                String exampleAr = firstNonEmpty(item.optString("example_ar"), item.optString("sentence_translation"), item.optString("translation_ar"));
                 String identity = en.toLowerCase(Locale.US) + "|" + grade;
                 if (en.length() > 0 && ar.length() > 0 && validGrade(grade) && seen.add(identity)) {
-                    words.add(new Word(item.optInt("id", i + 1), en, ar, grade));
+                    words.add(new Word(item.optInt("id", i + 1), en, ar, grade, exampleEn, exampleAr));
                 }
             }
         } catch (Exception ignored) { }
         if (words.isEmpty()) seedFallback();
+    }
+
+    private String firstNonEmpty(String first, String second, String third) {
+        if (!TextUtils.isEmpty(first)) return first.trim();
+        if (!TextUtils.isEmpty(second)) return second.trim();
+        return TextUtils.isEmpty(third) ? "" : third.trim();
     }
 
     private boolean validGrade(String grade) {
