@@ -36,8 +36,13 @@ jobs:
           gradle-version: '7.6.4'
       - name: Bundle complete offline dictionary
         run: |
+          set -euo pipefail
+          test "$(jq '.words | length' assets/data/words.json)" = "1350"
+          test "$(jq '[.words[] | select(.word_en == "" or .meaning_ar == "" or (.grade | IN("KG", "1", "2", "3", "4", "5", "6", "7", "8") | not))] | length' assets/data/words.json)" = "0"
           mkdir -p legacy-android-4.4/app/src/main/assets
           cp assets/data/words.json legacy-android-4.4/app/src/main/assets/words.json
+      - name: Lint native Android app
+        run: gradle -p legacy-android-4.4 lintDebug --stacktrace --no-daemon
       - name: Build signed debug APK
         run: |
           set -o pipefail
