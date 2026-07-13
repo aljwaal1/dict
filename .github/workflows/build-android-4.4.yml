@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     branches: [android-4.4]
-    paths: ['legacy-android-4.4/**', '.github/workflows/build-android-4.4.yml']
+    paths: ['legacy-android-4.4/**', 'assets/data/words.json', '.github/workflows/build-android-4.4.yml']
 
 permissions:
   contents: write
@@ -34,6 +34,10 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '7.6.4'
+      - name: Bundle complete offline dictionary
+        run: |
+          mkdir -p legacy-android-4.4/app/src/main/assets
+          cp assets/data/words.json legacy-android-4.4/app/src/main/assets/words.json
       - name: Build signed debug APK
         run: |
           set -o pipefail

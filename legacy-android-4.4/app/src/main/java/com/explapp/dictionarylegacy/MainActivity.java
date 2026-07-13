@@ -1,8 +1,10 @@
 package com.explapp.dictionarylegacy;
 
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.speech.tts.TextToSpeech;
 import android.text.Editable;
@@ -12,6 +14,10 @@ import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.content.Context;
 import android.widget.*;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Random;
@@ -26,8 +32,11 @@ public class MainActivity extends Activity {
     private EditText search;
     private TextToSpeech tts;
     private String selectedGrade = "الكل";
+    private int currentPage;
+    private static final int PAGE_SIZE = 25;
     private final ArrayList<Word> words = new ArrayList<Word>();
-    private final String[] grades = {"الكل", "روضة", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السابع"};
+    private final String[] gradeKeys = {"الكل", "KG", "1", "2", "3", "4", "5", "6", "7", "8"};
+    private final String[] gradeLabels = {"الكل", "روضة", "الأول", "الثاني", "الثالث", "الرابع", "الخامس", "السادس", "السابع", "الثامن"};
 
     private static class Word {
         String en, ar, grade, example;
@@ -36,7 +45,7 @@ public class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        seedWords();
+        loadWords();
         tts = new TextToSpeech(this, new TextToSpeech.OnInitListener() {
             @Override public void onInit(int status) {
                 if (status == TextToSpeech.SUCCESS) tts.setLanguage(Locale.US);
@@ -87,23 +96,23 @@ public class MainActivity extends Activity {
         search.setTextSize(16);
         search.setTextColor(ink);
         search.setHintTextColor(Color.rgb(115, 130, 148));
-        search.setBackgroundColor(Color.WHITE);
+        search.setBackground(round(Color.WHITE, 16));
         search.setPadding(dp(16), dp(10), dp(16), dp(10));
         content.addView(search, lp(-1, dp(54), 0, 0, 0, 10));
         search.addTextChangedListener(new TextWatcher() {
             public void beforeTextChanged(CharSequence s, int a, int b, int c) {}
-            public void onTextChanged(CharSequence s, int a, int b, int c) { renderWords(s.toString()); }
+            public void onTextChanged(CharSequence s, int a, int b, int c) { currentPage=0; renderWords(s.toString()); }
             public void afterTextChanged(Editable e) {}
         });
 
         HorizontalScrollView gradesScroll = new HorizontalScrollView(this);
         LinearLayout gradeRow = new LinearLayout(this);
         gradeRow.setPadding(0, 0, 0, dp(8));
-        for (int i=0; i<grades.length; i++) {
-            final String grade = grades[i];
-            Button b = smallButton(grade, grade.equals(selectedGrade));
+        for (int i=0; i<gradeKeys.length; i++) {
+            final String grade = gradeKeys[i];
+            Button b = smallButton(gradeLabels[i], grade.equals(selectedGrade));
             b.setOnClickListener(new View.OnClickListener() { public void onClick(View v) {
-                selectedGrade = grade; showDictionary();
+                selectedGrade = grade; currentPage=0; showDictionary();
             }});
             gradeRow.addView(b, lp(-2, dp(40), 0, 0, 0, 0));
         }
@@ -115,19 +124,39 @@ public class MainActivity extends Activity {
     private void renderWords(String query) {
         while (content.getChildCount() > 2) content.removeViewAt(2);
         String q = query.trim().toLowerCase(Locale.US);
-        int shown=0;
+        ArrayList<Word> matches = new ArrayList<Word>();
         for (int i=0;i<words.size();i++) {
             Word w=words.get(i);
             if (!selectedGrade.equals("الكل") && !w.grade.equals(selectedGrade)) continue;
             if (q.length()>0 && w.en.toLowerCase(Locale.US).indexOf(q)<0 && w.ar.indexOf(query.trim())<0) continue;
-            content.addView(wordCard(w));
-            shown++;
+            matches.add(w);
         }
-        if (shown==0) {
+        if (matches.size()==0) {
             TextView empty=text("لا توجد نتيجة. جرّب كلمة أخرى.", 17, ink, Typeface.NORMAL);
             empty.setGravity(Gravity.CENTER);
             content.addView(empty, lp(-1, dp(120), 0, 0, 0, 0));
+            return;
         }
+        int pages = (matches.size()+PAGE_SIZE-1)/PAGE_SIZE;
+        if (currentPage>=pages) currentPage=pages-1;
+        int start=currentPage*PAGE_SIZE, end=Math.min(matches.size(), start+PAGE_SIZE);
+        TextView count=text("النتائج " + (start+1) + "–" + end + " من " + matches.size(), 13, Color.rgb(90,105,120), Typeface.BOLD);
+        count.setGravity(Gravity.CENTER); content.addView(count, lp(-1,-2,0,0,4,0));
+        for (int i=start;i<end;i++) content.addView(wordCard(matches.get(i)));
+        if (pages>1) addPager(pages, query);
+    }
+
+    private void addPager(final int pages, final String query) {
+        LinearLayout row=new LinearLayout(this); row.setGravity(Gravity.CENTER);
+        Button previous=smallButton("السابق", false); previous.setEnabled(currentPage>0);
+        previous.setOnClickListener(new View.OnClickListener(){ public void onClick(View v){ currentPage--; renderWords(query); }});
+        TextView page=text((currentPage+1)+" / "+pages, 15, navy, Typeface.BOLD); page.setGravity(Gravity.CENTER);
+        Button next=smallButton("التالي", false); next.setEnabled(currentPage<pages-1);
+        next.setOnClickListener(new View.OnClickListener(){ public void onClick(View v){ currentPage++; renderWords(query); }});
+        row.addView(previous, new LinearLayout.LayoutParams(0,dp(44),1));
+        row.addView(page, new LinearLayout.LayoutParams(0,dp(44),.7f));
+        row.addView(next, new LinearLayout.LayoutParams(0,dp(44),1));
+        content.addView(row, lp(-1,-2,0,0,8,0));
     }
 
     private View wordCard(final Word w) {
@@ -136,7 +165,7 @@ public class MainActivity extends Activity {
         card.setPadding(dp(16), dp(13), dp(16), dp(13));
         card.setBackgroundColor(Color.WHITE);
         TextView en=text(w.en, 23, navy, Typeface.BOLD);
-        TextView ar=text(w.ar + "   •   صف " + w.grade, 17, blue, Typeface.BOLD);
+        TextView ar=text(w.ar + "   •   " + gradeName(w.grade), 17, blue, Typeface.BOLD);
         TextView ex=text(w.example, 14, Color.rgb(95,108,123), Typeface.NORMAL);
         card.addView(en);
         card.addView(ar, lp(-1,-2,0,0,4,0));
@@ -149,8 +178,9 @@ public class MainActivity extends Activity {
 
     private void showCards() {
         base("بطاقات المراجعة", "اضغط للإجابة ثم استمع للنطق");
-        final Random random = new Random();
-        final Word first = words.get(random.nextInt(words.size()));
+        final SharedPreferences prefs=getSharedPreferences("learning",MODE_PRIVATE);
+        final int index=Math.max(0,prefs.getInt("card_index",0))%words.size();
+        final Word first = words.get(index);
         final TextView question = text(first.en, 34, navy, Typeface.BOLD);
         question.setGravity(Gravity.CENTER);
         final TextView answer = text("اضغط لإظهار المعنى", 20, blue, Typeface.BOLD);
@@ -164,6 +194,9 @@ public class MainActivity extends Activity {
             answer.setText(first.ar + "\n" + first.example); say(first.en);
         }});
         card.addView(reveal, lp(-1,dp(52),0,0,28,0));
+        Button next=wideButton("الكلمة التالية");
+        next.setOnClickListener(new View.OnClickListener(){ public void onClick(View v){ prefs.edit().putInt("card_index",(index+1)%words.size()).apply(); showCards(); }});
+        card.addView(next, lp(-1,dp(52),0,0,8,0));
         content.addView(cardWithMargin(card));
         TextView tip=text("كل مرة تفتح البطاقات تحصل على كلمة جديدة للمراجعة.", 15, Color.rgb(90,105,120), Typeface.NORMAL);
         tip.setGravity(Gravity.CENTER); content.addView(tip, lp(-1,-2,0,0,14,0));
@@ -175,6 +208,10 @@ public class MainActivity extends Activity {
         final Word correct=words.get(random.nextInt(words.size()));
         final Word wrong1=words.get((words.indexOf(correct)+3)%words.size());
         final Word wrong2=words.get((words.indexOf(correct)+7)%words.size());
+        final SharedPreferences prefs=getSharedPreferences("learning",MODE_PRIVATE);
+        final int correctCount=prefs.getInt("correct",0), wrongCount=prefs.getInt("wrong",0);
+        TextView score=text("الصحيح " + correctCount + "  •  الخطأ " + wrongCount + "  •  النقاط " + String.format(Locale.US,"%.1f",correctCount*.5f), 14, blue, Typeface.BOLD);
+        score.setGravity(Gravity.CENTER); content.addView(score,lp(-1,-2,0,0,4,0));
         TextView q=text("ما معنى كلمة  " + correct.en + " ؟", 24, navy, Typeface.BOLD);
         q.setGravity(Gravity.CENTER); content.addView(q, lp(-1,dp(88),0,0,8,0));
         ArrayList<String> choices=new ArrayList<String>();
@@ -185,6 +222,7 @@ public class MainActivity extends Activity {
             Button b=wideButton(choice);
             b.setOnClickListener(new View.OnClickListener(){ public void onClick(View v) {
                 boolean ok=choice.equals(correct.ar);
+                prefs.edit().putInt(ok?"correct":"wrong",(ok?correctCount:wrongCount)+1).apply();
                 Toast.makeText(MainActivity.this, ok ? "إجابة ممتازة! + نصف نقطة" : "الإجابة الصحيحة: " + correct.ar, Toast.LENGTH_LONG).show();
                 if (ok) say(correct.en);
                 showQuiz();
@@ -202,11 +240,11 @@ public class MainActivity extends Activity {
     private LinearLayout.LayoutParams navLp() { return new LinearLayout.LayoutParams(0, dp(48), 1); }
     private Button wideButton(String label) {
         Button b=new Button(this); b.setText(label); b.setTextSize(17); b.setTextColor(Color.WHITE); b.setTypeface(Typeface.DEFAULT, Typeface.BOLD);
-        b.setAllCaps(false); b.setBackgroundColor(blue); return b;
+        b.setAllCaps(false); b.setBackground(round(blue, 16)); return b;
     }
     private Button smallButton(String label, boolean selected) {
         Button b=new Button(this); b.setText(label); b.setTextSize(14); b.setAllCaps(false);
-        b.setTextColor(selected ? Color.WHITE : navy); b.setBackgroundColor(selected ? blue : sky);
+        b.setTextColor(selected ? Color.WHITE : navy); b.setBackground(round(selected ? blue : sky, 14));
         return b;
     }
     private View cardWithMargin(View inside) {
@@ -221,31 +259,29 @@ public class MainActivity extends Activity {
         LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(w,h,weight); p.setMargins(dp(l),dp(top),dp(r),dp(10)); return p;
     }
     private int dp(int n) { return (int)(n*getResources().getDisplayMetrics().density+0.5f); }
+    private GradientDrawable round(int color,int radius) { GradientDrawable d=new GradientDrawable(); d.setColor(color); d.setCornerRadius(dp(radius)); return d; }
     private void say(String word) { if (tts!=null) tts.speak(word, TextToSpeech.QUEUE_FLUSH, null); }
     @Override protected void onDestroy() { if(tts!=null){tts.stop();tts.shutdown();} super.onDestroy(); }
 
-    private void seedWords() {
-        add("apple","تفاحة","روضة","I eat a red apple.");
-        add("cat","قطة","روضة","The cat is small.");
-        add("sun","شمس","روضة","The sun is bright.");
-        add("book","كتاب","الأول","This book is new.");
-        add("school","مدرسة","الأول","My school is beautiful.");
-        add("friend","صديق","الأول","Ali is my friend.");
-        add("water","ماء","الثاني","Drink clean water.");
-        add("family","عائلة","الثاني","I love my family.");
-        add("happy","سعيد","الثاني","I am happy today.");
-        add("computer","حاسوب","الثالث","The computer is fast.");
-        add("garden","حديقة","الثالث","We play in the garden.");
-        add("teacher","معلم","الثالث","My teacher helps me.");
-        add("morning","صباح","الرابع","Good morning, class.");
-        add("library","مكتبة","الرابع","The library has many books.");
-        add("healthy","صحي","الرابع","Fruit is healthy food.");
-        add("journey","رحلة","الخامس","Our journey was fun.");
-        add("important","مهم","الخامس","Reading is important.");
-        add("environment","بيئة","الخامس","Keep the environment clean.");
-        add("discover","يكتشف","السابع","We discover new ideas.");
-        add("challenge","تحدٍّ","السابع","The test is a challenge.");
-        add("practice","يتدرّب","السابع","Practice English every day.");
+    private String gradeName(String key) { for(int i=0;i<gradeKeys.length;i++) if(gradeKeys[i].equals(key)) return gradeLabels[i]; return "الصف " + key; }
+
+    private void loadWords() {
+        try {
+            InputStream in=getAssets().open("words.json"); ByteArrayOutputStream out=new ByteArrayOutputStream();
+            byte[] buffer=new byte[8192]; int read; while((read=in.read(buffer))!=-1) out.write(buffer,0,read); in.close();
+            JSONArray list=new JSONObject(out.toString("UTF-8")).getJSONArray("words");
+            for(int i=0;i<list.length();i++) { JSONObject item=list.getJSONObject(i); String en=item.optString("word_en").trim(); String ar=item.optString("meaning_ar").trim(); String grade=item.optString("grade").trim(); if(en.length()>0&&ar.length()>0) add(en,ar,grade,"Example: " + en); }
+        } catch(Exception ignored) { }
+        if(words.size()==0) seedFallback();
+    }
+
+    private void seedFallback() {
+        add("apple","تفاحة","KG","I eat a red apple.");
+        add("cat","قطة","KG","The cat is small.");
+        add("sun","شمس","KG","The sun is bright.");
+        add("book","كتاب","1","This book is new.");
+        add("school","مدرسة","1","My school is beautiful.");
+        add("water","ماء","2","Drink clean water.");
     }
     private void add(String e,String a,String g,String x) { words.add(new Word(e,a,g,x)); }
 }
