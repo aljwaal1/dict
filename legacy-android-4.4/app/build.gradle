@@ -1,6 +1,6 @@
 plugins { id 'com.android.application' }
 android { namespace 'com.explapp.dictionarylegacy'; compileSdk 33
- defaultConfig { applicationId 'com.explapp.dictionarylegacy'; minSdk 19; targetSdk 28; versionCode 4; versionName '3.1.0-legacy' }
+ defaultConfig { applicationId 'com.explapp.dictionarylegacy'; minSdk 19; targetSdk 28; versionCode 5; versionName '3.2.0-legacy' }
  buildTypes { release { minifyEnabled false } }
  lintOptions { abortOnError true; disable 'ExpiredTargetSdkVersion' }
 }
