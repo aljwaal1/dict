@@ -19,184 +19,234 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
-
     steps:
-      - name: Checkout main
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
           ref: main
 
-      - name: Set up Java 17
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Flutter stable
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Prepare Android project
         run: |
-          flutter --version
           flutter create --platforms=android --org com.explapp .
           rm -rf test
           flutter pub get
 
-      - name: Repair Flutter source syntax
+      - name: Restore full cards and management pages
         run: |
-          python3 <<'PYFIX'
+          python3 <<'PY'
           from pathlib import Path
 
           path = Path('lib/main.dart')
           text = path.read_text(encoding='utf-8')
 
-          start = text.index('class FlashCardsPage extends StatefulWidget')
-          end = text.index('class QuizSetupPage extends StatelessWidget')
-
-          replacement = r'''class FlashCardsPage extends StatefulWidget {
-            final Store store;
-            const FlashCardsPage({super.key, required this.store});
-
-            @override
-            State<FlashCardsPage> createState() => _FlashCardsPageState();
+          if 'Future<void> addWord(' not in text:
+              marker = "  Map<String, dynamic> _allPrefsSnapshot() {"
+              method = r'''  Future<void> addWord({
+            required String english,
+            required String arabic,
+            required String grade,
+            String exampleEnglish = '',
+            String exampleArabic = '',
+          }) async {
+            final cleanEnglish = english.trim();
+            final cleanArabic = arabic.trim();
+            if (cleanEnglish.isEmpty || cleanArabic.isEmpty) return;
+            final nextId = words.isEmpty ? 1 : words.map((w) => w.id).reduce(max) + 1;
+            words.add(WordItem(
+              id: nextId,
+              grade: grade,
+              en: cleanEnglish,
+              ar: cleanArabic,
+              exampleEn: exampleEnglish.trim(),
+              exampleAr: exampleArabic.trim(),
+            ));
+            await persistWords();
+            notifyListeners();
           }
 
-          class _FlashCardsPageState extends State<FlashCardsPage> {
+'''
+              text = text.replace(marker, method + marker)
+
+          if 'class AddWordPage extends StatefulWidget' not in text:
+              marker = 'class SettingsPage extends StatelessWidget'
+              pages = r'''class AddWordPage extends StatefulWidget {
+            final Store store;
+            const AddWordPage({super.key, required this.store});
+
+            @override
+            State<AddWordPage> createState() => _AddWordPageState();
+          }
+
+          class _AddWordPageState extends State<AddWordPage> {
+            final english = TextEditingController();
+            final arabic = TextEditingController();
+            final exampleEnglish = TextEditingController();
+            final exampleArabic = TextEditingController();
             String grade = '1';
-            int index = 0;
+
+            @override
+            void dispose() {
+              english.dispose();
+              arabic.dispose();
+              exampleEnglish.dispose();
+              exampleArabic.dispose();
+              super.dispose();
+            }
+
+            @override
+            Widget build(BuildContext context) => Scaffold(
+                  appBar: AppBar(title: const Text('إضافة كلمة')),
+                  body: ListView(
+                    padding: const EdgeInsets.all(18),
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: grade,
+                        items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
+                        onChanged: (value) => setState(() => grade = value ?? '1'),
+                        decoration: const InputDecoration(labelText: 'الصف'),
+                      ),
+                      const SizedBox(height: 12),
+                      TextField(controller: english, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'الكلمة الإنجليزية')),
+                      const SizedBox(height: 12),
+                      TextField(controller: arabic, decoration: const InputDecoration(labelText: 'المعنى العربي')),
+                      const SizedBox(height: 12),
+                      TextField(controller: exampleEnglish, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'جملة إنجليزية - اختياري')),
+                      const SizedBox(height: 12),
+                      TextField(controller: exampleArabic, decoration: const InputDecoration(labelText: 'ترجمة الجملة - اختياري')),
+                      const SizedBox(height: 22),
+                      FilledButton.icon(
+                        onPressed: () async {
+                          if (english.text.trim().isEmpty || arabic.text.trim().isEmpty) {
+                            snack(context, 'اكتب الكلمة والمعنى أولاً');
+                            return;
+                          }
+                          await widget.store.addWord(
+                            english: english.text,
+                            arabic: arabic.text,
+                            grade: grade,
+                            exampleEnglish: exampleEnglish.text,
+                            exampleArabic: exampleArabic.text,
+                          );
+                          if (context.mounted) Navigator.pop(context);
+                        },
+                        icon: const Icon(Icons.save_rounded),
+                        label: const Text('حفظ الكلمة'),
+                      ),
+                    ],
+                  ),
+                );
+          }
+
+          class SentencesPage extends StatelessWidget {
+            final Store store;
+            const SentencesPage({super.key, required this.store});
+
+            @override
+            Widget build(BuildContext context) {
+              final items = store.words.where((w) => w.exampleEn.isNotEmpty || w.exampleAr.isNotEmpty).toList();
+              return Scaffold(
+                appBar: AppBar(title: const Text('الجمل التعليمية')),
+                body: items.isEmpty
+                    ? const Center(child: Text('لا توجد جمل مضافة بعد'))
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: items.length,
+                        itemBuilder: (_, index) {
+                          final word = items[index];
+                          return Card(
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.all(16),
+                              title: Text(word.exampleEn.isEmpty ? word.en : word.exampleEn, textDirection: TextDirection.ltr),
+                              subtitle: Padding(
+                                padding: const EdgeInsets.only(top: 8),
+                                child: Text(word.exampleAr.isEmpty ? word.ar : word.exampleAr),
+                              ),
+                              trailing: IconButton(icon: const Icon(Icons.volume_up_rounded), onPressed: () => store.speak(word.exampleEn.isEmpty ? word.en : word.exampleEn)),
+                              onTap: () => showWord(context, store, word),
+                            ),
+                          );
+                        },
+                      ),
+              );
+            }
+          }
+
+          class FullWordCardPage extends StatefulWidget {
+            final Store store;
+            final WordItem word;
+            const FullWordCardPage({super.key, required this.store, required this.word});
+
+            @override
+            State<FullWordCardPage> createState() => _FullWordCardPageState();
+          }
+
+          class _FullWordCardPageState extends State<FullWordCardPage> {
             bool reveal = false;
 
             @override
             Widget build(BuildContext context) {
-              final list = widget.store.byGrade(grade);
-              final word = list.isEmpty ? null : list[index % list.length];
-
+              final word = widget.word;
               return Scaffold(
-                appBar: AppBar(title: const Text('البطاقات التعليمية')),
-                body: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    children: [
-                      DropdownButtonFormField<String>(
-                        initialValue: grade,
-                        items: grades
-                            .map(
-                              (g) => DropdownMenuItem<String>(
-                                value: g,
-                                child: Text(gradeName(g)),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() {
-                            grade = value ?? '1';
-                            index = widget.store.lastIndex(grade);
-                            reveal = false;
-                          });
-                        },
-                      ),
-                      const SizedBox(height: 22),
-                      Expanded(
-                        child: word == null
-                            ? const Center(child: Text('لا توجد كلمات'))
-                            : Card(
-                                child: InkWell(
-                                  borderRadius: BorderRadius.circular(24),
-                                  onTap: () => setState(() => reveal = !reveal),
-                                  child: Center(
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(30),
-                                      child: AnimatedSwitcher(
+                appBar: AppBar(title: const Text('بطاقة الكلمة')),
+                body: SafeArea(
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      children: [
+                        Expanded(
+                          child: Card(
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(24),
+                              onTap: () => setState(() => reveal = !reveal),
+                              child: Center(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.all(28),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900)),
+                                      const SizedBox(height: 18),
+                                      IconButton.filledTonal(iconSize: 34, onPressed: () => widget.store.speak(word.en), icon: const Icon(Icons.volume_up_rounded)),
+                                      const SizedBox(height: 18),
+                                      AnimatedCrossFade(
                                         duration: const Duration(milliseconds: 220),
-                                        child: reveal
-                                            ? Column(
-                                                key: const ValueKey(1),
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    word.ar,
-                                                    style: const TextStyle(
-                                                      fontSize: 34,
-                                                      fontWeight: FontWeight.w900,
-                                                    ),
-                                                  ),
-                                                  if (word.exampleAr.isNotEmpty)
-                                                    Padding(
-                                                      padding: const EdgeInsets.only(top: 14),
-                                                      child: Text(word.exampleAr),
-                                                    ),
-                                                ],
-                                              )
-                                            : Column(
-                                                key: const ValueKey(2),
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  Text(
-                                                    word.en,
-                                                    textDirection: TextDirection.ltr,
-                                                    style: const TextStyle(
-                                                      fontSize: 40,
-                                                      fontWeight: FontWeight.w900,
-                                                    ),
-                                                  ),
-                                                  IconButton(
-                                                    iconSize: 34,
-                                                    icon: const Icon(Icons.volume_up_rounded),
-                                                    onPressed: () => widget.store.speak(word.en),
-                                                  ),
-                                                  const Text('اضغط لإظهار المعنى'),
-                                                ],
-                                              ),
+                                        crossFadeState: reveal ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                                        firstChild: const Text('اضغط على البطاقة لإظهار المعنى', textAlign: TextAlign.center),
+                                        secondChild: Column(
+                                          children: [
+                                            Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800)),
+                                            if (word.exampleEn.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 22), child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19))),
+                                            if (word.exampleAr.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 10), child: Text(word.exampleAr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17))),
+                                          ],
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ),
                                 ),
                               ),
-                      ),
-                      const SizedBox(height: 14),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: word == null
-                                  ? null
-                                  : () async {
-                                      await widget.store.answer(word, false);
-                                      if (!mounted) return;
-                                      setState(() {
-                                        index = (index + 1) % list.length;
-                                        reveal = false;
-                                      });
-                                    },
-                              icon: const Icon(Icons.refresh),
-                              label: const Text('تحتاج مراجعة'),
                             ),
                           ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: FilledButton.icon(
-                              onPressed: word == null
-                                  ? null
-                                  : () async {
-                                      await widget.store.answer(word, true);
-                                      final next = (index + 1) % list.length;
-                                      await widget.store.saveLastIndex(grade, next);
-                                      if (!mounted) return;
-                                      setState(() {
-                                        index = next;
-                                        reveal = false;
-                                      });
-                                    },
-                              icon: const Icon(Icons.check),
-                              label: const Text('أتقنتها'),
-                            ),
+                        ),
+                        const SizedBox(height: 14),
+                        SizedBox(
+                          width: double.infinity,
+                          child: FilledButton.icon(
+                            onPressed: () => setState(() => reveal = !reveal),
+                            icon: Icon(reveal ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+                            label: Text(reveal ? 'إخفاء المعنى' : 'إظهار المعنى'),
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               );
@@ -204,115 +254,52 @@ jobs:
           }
 
           '''
+              text = text.replace(marker, pages + marker)
 
-          text = text[:start] + replacement + text[end:]
+          settings_marker = "          Card(child: SwitchListTile(secondary: const Icon(Icons.volume_up_outlined), title: const Text('الأصوات والنطق'), subtitle: const Text('صوت الضغط ونطق الكلمات الإنجليزية'), value: store.sound, onChanged: store.setSound)),"
+          settings_add = settings_marker + r'''
+          const SectionTitle('إدارة المحتوى'),
+          SettingsTile(icon: Icons.add_circle_outline_rounded, title: 'إضافة كلمة', subtitle: 'إضافة كلمة ومعنى وجملة مثال', onTap: () => push(context, AddWordPage(store: store))),
+          SettingsTile(icon: Icons.people_alt_outlined, title: 'إدارة الملفات الشخصية', subtitle: 'إضافة طالب أو التبديل بين الملفات', onTap: () => push(context, ProfilesPage(store: store))),
+          SettingsTile(icon: Icons.format_quote_rounded, title: 'الجمل التعليمية', subtitle: 'عرض الجمل الإنجليزية وترجمتها', onTap: () => push(context, SentencesPage(store: store))),'''
+          if "title: 'إضافة كلمة'" not in text:
+              text = text.replace(settings_marker, settings_add)
 
-          text = text.replace(
-            "body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g)))).toList()),",
-            "body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g))))).toList()),",
-          )
-
-          text = text.replace(
-            "body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); })).toList()),",
-            "body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); }))).toList()),",
-          )
-
-          text = text.replace(
-            "...grades.map((g) { final total = store.byGrade(g).length, done = store.masteredGrade(g); return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 9), LinearProgressIndicator(value: total == 0 ? 0 : done / total), const SizedBox(height: 7), Text('$done من $total')]))); }),",
-            "...grades.map((g) { final total = store.byGrade(g).length, done = store.masteredGrade(g); return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 9), LinearProgressIndicator(value: total == 0 ? 0 : done / total), const SizedBox(height: 7), Text('$done من $total')]))); }),",
-          )
+          start = text.find('void showWord(BuildContext context, Store store, WordItem w) {')
+          end = text.find('void push(BuildContext context, Widget page)', start)
+          if start != -1 and end != -1:
+              text = text[:start] + "void showWord(BuildContext context, Store store, WordItem w) => push(context, FullWordCardPage(store: store, word: w));\n\n" + text[end:]
 
           path.write_text(text, encoding='utf-8')
-          print('Repaired lib/main.dart syntax and mapped widget lists')
-          PYFIX
+          print('Applied full card and settings management improvements')
+          PY
 
-      - name: Install Android SDK 36
+      - name: Configure Android
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
-
-      - name: Force Android SDK 36 compatibility
-        run: |
-          python3 <<'PYFIX'
-          from pathlib import Path
-          import os, re
-
-          def patch_file(path: Path):
-              if not path.exists():
-                  return
-              text = path.read_text(errors='ignore')
-              original = text
-              replacements = [
-                  (r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36'),
-                  (r'compileSdkVersion\s*=\s*flutter\.compileSdkVersion', 'compileSdkVersion = 36'),
-                  (r'compileSdkVersion\s+\d+', 'compileSdkVersion 36'),
-                  (r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36'),
-                  (r'compileSdk\s+flutter\.compileSdkVersion', 'compileSdk 36'),
-                  (r'compileSdk\s+\d+', 'compileSdk 36'),
-                  (r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36'),
-                  (r'compileSdk\s*=\s*\d+', 'compileSdk = 36'),
-              ]
-              for pattern, replacement in replacements:
-                  text = re.sub(pattern, replacement, text)
-              if text != original:
-                  path.write_text(text)
-                  print('patched', path)
-
-          for rel in [
-              'android/app/build.gradle',
-              'android/app/build.gradle.kts',
-              'android/build.gradle',
-              'android/build.gradle.kts',
-          ]:
-              patch_file(Path(rel))
-
-          pub_cache = Path(os.environ.get('PUB_CACHE', str(Path.home()/'.pub-cache')))
-          if pub_cache.exists():
-              for pattern in ('build.gradle', 'build.gradle.kts'):
-                  for file in pub_cache.rglob(pattern):
-                      if '/android/' in str(file):
-                          patch_file(file)
-          PYFIX
-
-      - name: Set Android package and app name
-        run: |
           sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
-          sed -i 's/applicationId ".*"/applicationId "com.explapp.qamoosi_school"/' android/app/build.gradle || true
           sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
 
-      - name: Analyze project
+      - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build release APK
+      - name: Build APK
         run: flutter build apk --release
 
-      - name: Prepare downloadable APK
+      - name: Publish APK
         run: |
           mkdir -p apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.0.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل تطبيق قاموسي المدرسي للأندرويد
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.0.apk
 
-          أحدث نسخة جاهزة للتثبيت:
-
-          `apk/qamoosi-school.apk`
-
-          اسم الإصدار الحالي:
-
-          `apk/qamoosi-school-v2.0.0.apk`
-          EOF
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: qamoosi-school-v2.0.0-apk
           path: apk/qamoosi-school-v2.0.0.apk
-          if-no-files-found: error
           retention-days: 30
 
-      - name: Commit fixed source and APK to main
-        uses: stefanzweifel/git-auto-commit-action@v5
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Fix remaining Flutter syntax and build qamoosi school APK v2.0.0
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
+          commit_message: Restore full word card and content management pages
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk
