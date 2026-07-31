@@ -3,25 +3,41 @@ name: Build APK Direct
 on:
   workflow_dispatch:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
+    paths-ignore:
+      - "apk/**"
+      - "DOWNLOAD_APK.md"
 
 permissions:
   contents: write
 
+concurrency:
+  group: build-apk-main
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
+    timeout-minutes: 35
 
-      - uses: actions/setup-java@v4
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
+          cache: gradle
 
-      - uses: subosito/flutter-action@v2
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
         with:
           channel: stable
+          cache: true
 
       - name: Prepare Android project
         run: |
@@ -30,9 +46,12 @@ jobs:
           rm -rf test
           flutter pub get
 
-      - name: Force Android SDK 36 compatibility
+      - name: Install Android SDK 36
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+
+      - name: Force Android SDK 36 compatibility
+        run: |
           python3 <<'PYFIX'
           from pathlib import Path
           import os, re
@@ -42,70 +61,78 @@ jobs:
                   return
               text = path.read_text(errors='ignore')
               original = text
-              text = re.sub(r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36', text)
-              text = re.sub(r'compileSdkVersion\s*=\s*flutter\.compileSdkVersion', 'compileSdkVersion = 36', text)
-              text = re.sub(r'compileSdkVersion\s+\d+', 'compileSdkVersion 36', text)
-              text = re.sub(r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36', text)
-              text = re.sub(r'compileSdk\s+flutter\.compileSdkVersion', 'compileSdk 36', text)
-              text = re.sub(r'compileSdk\s+\d+', 'compileSdk 36', text)
-              text = re.sub(r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36', text)
-              text = re.sub(r'compileSdk\s*=\s*\d+', 'compileSdk = 36', text)
+              replacements = [
+                  (r'compileSdkVersion\s+flutter\.compileSdkVersion', 'compileSdkVersion 36'),
+                  (r'compileSdkVersion\s*=\s*flutter\.compileSdkVersion', 'compileSdkVersion = 36'),
+                  (r'compileSdkVersion\s+\d+', 'compileSdkVersion 36'),
+                  (r'compileSdkVersion\s*=\s*\d+', 'compileSdkVersion = 36'),
+                  (r'compileSdk\s+flutter\.compileSdkVersion', 'compileSdk 36'),
+                  (r'compileSdk\s+\d+', 'compileSdk 36'),
+                  (r'compileSdk\s*=\s*flutter\.compileSdkVersion', 'compileSdk = 36'),
+                  (r'compileSdk\s*=\s*\d+', 'compileSdk = 36'),
+              ]
+              for pattern, replacement in replacements:
+                  text = re.sub(pattern, replacement, text)
               if text != original:
                   path.write_text(text)
                   print('patched', path)
 
-          # Patch generated app files only by direct replacement.
           for rel in [
               'android/app/build.gradle',
               'android/app/build.gradle.kts',
               'android/build.gradle',
               'android/build.gradle.kts',
-              'android/settings.gradle',
-              'android/settings.gradle.kts',
           ]:
               patch_file(Path(rel))
 
-          # Patch Android plugin projects in Pub cache before Gradle reads metadata.
           pub_cache = Path(os.environ.get('PUB_CACHE', str(Path.home()/'.pub-cache')))
           if pub_cache.exists():
-              for f in pub_cache.rglob('build.gradle'):
-                  if '/android/' in str(f) or str(f).endswith('/android/build.gradle'):
-                      patch_file(f)
-              for f in pub_cache.rglob('build.gradle.kts'):
-                  if '/android/' in str(f) or str(f).endswith('/android/build.gradle.kts'):
-                      patch_file(f)
+              for pattern in ('build.gradle', 'build.gradle.kts'):
+                  for file in pub_cache.rglob(pattern):
+                      if '/android/' in str(file):
+                          patch_file(file)
           PYFIX
 
-      - name: Android package and app name
+      - name: Set Android package and app name
         run: |
-          sed -i "s/applicationId = .*/applicationId = \"com.explapp.qamoosi_school\"/" android/app/build.gradle || true
-          sed -i "s/applicationId \".*\"/applicationId \"com.explapp.qamoosi_school\"/" android/app/build.gradle || true
+          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
+          sed -i 's/applicationId ".*"/applicationId "com.explapp.qamoosi_school"/' android/app/build.gradle || true
           sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
 
-      - name: Analyze
+      - name: Analyze project
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
 
-      - name: Build APK
+      - name: Build release APK
         run: flutter build apk --release
 
-      - name: Copy APK
+      - name: Prepare downloadable APK
         run: |
           mkdir -p apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.0.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
           cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل تطبيق قاموسي المدرسي
+          # تحميل تطبيق قاموسي المدرسي للأندرويد
 
-          بعد نجاح البناء، رابط APK المباشر داخل المستودع:
+          أحدث نسخة جاهزة للتثبيت:
 
           `apk/qamoosi-school.apk`
 
-          أو من GitHub:
+          اسم الإصدار الحالي:
 
-          `https://github.com/aljwaal1/dict/raw/main/apk/qamoosi-school.apk`
+          `apk/qamoosi-school-v2.0.0.apk`
           EOF
 
-      - name: Commit APK
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: qamoosi-school-v2.0.0-apk
+          path: apk/qamoosi-school-v2.0.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit APK to main
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit_message: Build qamoosi school APK
-          file_pattern: apk/qamoosi-school.apk DOWNLOAD_APK.md
+          branch: main
+          commit_message: Build qamoosi school APK v2.0.0
+          file_pattern: apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
