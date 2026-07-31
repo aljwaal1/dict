@@ -52,6 +52,7 @@ jobs:
 
           path = Path('lib/main.dart')
           text = path.read_text(encoding='utf-8')
+
           start = text.index('class FlashCardsPage extends StatefulWidget')
           end = text.index('class QuizSetupPage extends StatelessWidget')
 
@@ -204,8 +205,25 @@ jobs:
 
           '''
 
-          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
-          print('Repaired lib/main.dart flash cards section')
+          text = text[:start] + replacement + text[end:]
+
+          text = text.replace(
+            "body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g)))).toList()),",
+            "body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g))))).toList()),",
+          )
+
+          text = text.replace(
+            "body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); })).toList()),",
+            "body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); }))).toList()),",
+          )
+
+          text = text.replace(
+            "...grades.map((g) { final total = store.byGrade(g).length, done = store.masteredGrade(g); return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 9), LinearProgressIndicator(value: total == 0 ? 0 : done / total), const SizedBox(height: 7), Text('$done من $total')]))); }),",
+            "...grades.map((g) { final total = store.byGrade(g).length, done = store.masteredGrade(g); return Card(child: Padding(padding: const EdgeInsets.all(16), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w800)), const SizedBox(height: 9), LinearProgressIndicator(value: total == 0 ? 0 : done / total), const SizedBox(height: 7), Text('$done من $total')]))); }),",
+          )
+
+          path.write_text(text, encoding='utf-8')
+          print('Repaired lib/main.dart syntax and mapped widget lists')
           PYFIX
 
       - name: Install Android SDK 36
@@ -296,5 +314,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Fix Flutter syntax and build qamoosi school APK v2.0.0
+          commit_message: Fix remaining Flutter syntax and build qamoosi school APK v2.0.0
           file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
