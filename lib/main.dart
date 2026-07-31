@@ -138,7 +138,10 @@ class Store extends ChangeNotifier {
     await _loadWords();
     await loadProgress();
     await tts.setLanguage('en-US');
-    await tts.setSpeechRate(.42);
+    await tts.setSpeechRate(.38);
+    await tts.setPitch(1.0);
+    await tts.setVolume(1.0);
+    await tts.awaitSpeakCompletion(true);
   }
 
   Future<void> _loadWords() async {
@@ -203,9 +206,31 @@ class Store extends ChangeNotifier {
   }
 
   Future<void> speak(String text) async {
-    if (sound) SystemSound.play(SystemSoundType.click);
-    await tts.stop();
-    await tts.speak(text);
+    final value = text.trim();
+    if (!sound || value.isEmpty) return;
+    try {
+      SystemSound.play(SystemSoundType.click);
+      await tts.stop();
+      await tts.setLanguage('en-US');
+      await tts.setSpeechRate(.38);
+      await tts.setPitch(1.0);
+      await tts.setVolume(1.0);
+      await tts.speak(value);
+    } catch (_) {
+      // Keep the app usable even when the device has no English TTS engine.
+    }
+  }
+
+  Future<bool> testPronunciation() async {
+    if (!sound) return false;
+    try {
+      final available = await tts.isLanguageAvailable('en-US');
+      if (available != true && available != 1) return false;
+      await speak('Welcome to my school dictionary');
+      return true;
+    } catch (_) {
+      return false;
+    }
   }
 
   Future<void> answer(WordItem word, bool correct) async {
@@ -222,6 +247,29 @@ class Store extends ChangeNotifier {
   Future<void> saveLastIndex(String grade, int index) async {
     lastIndexByGrade[grade] = index;
     await saveProgress();
+  }
+
+  Future<void> addWord({
+    required String english,
+    required String arabic,
+    required String grade,
+    String exampleEnglish = '',
+    String exampleArabic = '',
+  }) async {
+    final cleanEnglish = english.trim();
+    final cleanArabic = arabic.trim();
+    if (cleanEnglish.isEmpty || cleanArabic.isEmpty) return;
+    final nextId = words.isEmpty ? 1 : words.map((w) => w.id).reduce(max) + 1;
+    words.add(WordItem(
+      id: nextId,
+      grade: grade,
+      en: cleanEnglish,
+      ar: cleanArabic,
+      exampleEn: exampleEnglish.trim(),
+      exampleAr: exampleArabic.trim(),
+    ));
+    await persistWords();
+    notifyListeners();
   }
 
   Map<String, dynamic> _allPrefsSnapshot() {
@@ -509,8 +557,24 @@ class GradeWordsPage extends StatelessWidget {
           return Card(child: ListTile(
             title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
             subtitle: Text(w.ar),
-            trailing: Icon(store.mastered.contains('${w.id}') ? Icons.check_circle : Icons.chevron_left, color: store.mastered.contains('${w.id}') ? Colors.green : null),
-            onTap: () async { await store.saveLastIndex(grade, i); if (context.mounted) showWord(context, store, w); },
+            trailing: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'نطق الكلمة',
+                  icon: const Icon(Icons.volume_up_rounded),
+                  onPressed: () => store.speak(w.en),
+                ),
+                Icon(
+                  store.mastered.contains('${w.id}') ? Icons.check_circle : Icons.chevron_left,
+                  color: store.mastered.contains('${w.id}') ? Colors.green : null,
+                ),
+              ],
+            ),
+            onTap: () async {
+              await store.saveLastIndex(grade, i);
+              if (context.mounted) showWord(context, store, w);
+            },
           ));
         },
       ),
@@ -713,7 +777,16 @@ class DifficultPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final list = store.words.where((w) => store.difficult.contains('${w.id}')).toList();
-    return Scaffold(appBar: AppBar(title: const Text('الكلمات الصعبة')), body: list.isEmpty ? const Center(child: Text('ممتاز! لا توجد كلمات صعبة')) : ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (_, i) => Card(child: ListTile(title: Text(list[i].en, textDirection: TextDirection.ltr), subtitle: Text(list[i].ar), onTap: () => showWord(context, store, list[i])))));
+    return Scaffold(appBar: AppBar(title: const Text('الكلمات الصعبة')), body: list.isEmpty ? const Center(child: Text('ممتاز! لا توجد كلمات صعبة')) : ListView.builder(padding: const EdgeInsets.all(16), itemCount: list.length, itemBuilder: (_, i) => Card(child: ListTile(
+      title: Text(list[i].en, textDirection: TextDirection.ltr),
+      subtitle: Text(list[i].ar),
+      trailing: IconButton(
+        tooltip: 'نطق الكلمة',
+        icon: const Icon(Icons.volume_up_rounded),
+        onPressed: () => store.speak(list[i].en),
+      ),
+      onTap: () => showWord(context, store, list[i]),
+    ))));
   }
 }
 
@@ -755,6 +828,113 @@ class _ProfilesPageState extends State<ProfilesPage> {
       );
 }
 
+class AddWordPage extends StatefulWidget {
+  final Store store;
+  const AddWordPage({super.key, required this.store});
+
+  @override
+  State<AddWordPage> createState() => _AddWordPageState();
+}
+
+class _AddWordPageState extends State<AddWordPage> {
+  final english = TextEditingController();
+  final arabic = TextEditingController();
+  final exampleEnglish = TextEditingController();
+  final exampleArabic = TextEditingController();
+  String grade = '1';
+
+  @override
+  void dispose() {
+    english.dispose();
+    arabic.dispose();
+    exampleEnglish.dispose();
+    exampleArabic.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+        appBar: AppBar(title: const Text('إضافة كلمة')),
+        body: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: grade,
+              items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
+              onChanged: (value) => setState(() => grade = value ?? '1'),
+              decoration: const InputDecoration(labelText: 'الصف'),
+            ),
+            const SizedBox(height: 12),
+            TextField(controller: english, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'الكلمة الإنجليزية')),
+            const SizedBox(height: 12),
+            TextField(controller: arabic, decoration: const InputDecoration(labelText: 'المعنى العربي')),
+            const SizedBox(height: 12),
+            TextField(controller: exampleEnglish, textDirection: TextDirection.ltr, decoration: const InputDecoration(labelText: 'جملة إنجليزية - اختياري')),
+            const SizedBox(height: 12),
+            TextField(controller: exampleArabic, decoration: const InputDecoration(labelText: 'ترجمة الجملة - اختياري')),
+            const SizedBox(height: 22),
+            FilledButton.icon(
+              onPressed: () async {
+                if (english.text.trim().isEmpty || arabic.text.trim().isEmpty) {
+                  snack(context, 'اكتب الكلمة والمعنى أولاً');
+                  return;
+                }
+                await widget.store.addWord(
+                  english: english.text,
+                  arabic: arabic.text,
+                  grade: grade,
+                  exampleEnglish: exampleEnglish.text,
+                  exampleArabic: exampleArabic.text,
+                );
+                if (context.mounted) Navigator.pop(context);
+              },
+              icon: const Icon(Icons.save_rounded),
+              label: const Text('حفظ الكلمة'),
+            ),
+          ],
+        ),
+      );
+}
+
+class SentencesPage extends StatelessWidget {
+  final Store store;
+  const SentencesPage({super.key, required this.store});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = store.words.where((w) => w.exampleEn.isNotEmpty || w.exampleAr.isNotEmpty).toList();
+    return Scaffold(
+      appBar: AppBar(title: const Text('الجمل التعليمية')),
+      body: items.isEmpty
+          ? const Center(child: Text('لا توجد جمل مضافة بعد'))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: items.length,
+              itemBuilder: (_, index) {
+                final word = items[index];
+                final sentence = word.exampleEn.isEmpty ? word.en : word.exampleEn;
+                return Card(
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.all(16),
+                    title: Text(sentence, textDirection: TextDirection.ltr),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(word.exampleAr.isEmpty ? word.ar : word.exampleAr),
+                    ),
+                    trailing: IconButton(
+                      tooltip: 'نطق الجملة',
+                      icon: const Icon(Icons.volume_up_rounded),
+                      onPressed: () => store.speak(sentence),
+                    ),
+                    onTap: () => showWord(context, store, word),
+                  ),
+                );
+              },
+            ),
+    );
+  }
+}
+
 class SettingsPage extends StatelessWidget {
   final Store store;
   const SettingsPage({super.key, required this.store});
@@ -774,6 +954,27 @@ class SettingsPage extends StatelessWidget {
         appBar: AppBar(title: const Text('الإعدادات')),
         body: ListView(padding: const EdgeInsets.all(16), children: [
           Card(child: SwitchListTile(secondary: const Icon(Icons.volume_up_outlined), title: const Text('الأصوات والنطق'), subtitle: const Text('صوت الضغط ونطق الكلمات الإنجليزية'), value: store.sound, onChanged: store.setSound)),
+          SettingsTile(
+            icon: Icons.record_voice_over_rounded,
+            title: 'تجربة النطق الإنجليزي',
+            subtitle: 'تشغيل جملة تجريبية والتأكد من محرك الصوت',
+            onTap: () async {
+              final ok = await store.testPronunciation();
+              if (!context.mounted) return;
+              snack(
+                context,
+                ok
+                    ? 'تم تشغيل تجربة النطق بنجاح'
+                    : store.sound
+                        ? 'محرك النطق الإنجليزي غير متاح على الجهاز'
+                        : 'فعّل الأصوات والنطق أولاً',
+              );
+            },
+          ),
+          const SectionTitle('إدارة المحتوى'),
+          SettingsTile(icon: Icons.add_circle_outline_rounded, title: 'إضافة كلمة', subtitle: 'إضافة كلمة ومعنى وجملة مثال', onTap: () => push(context, AddWordPage(store: store))),
+          SettingsTile(icon: Icons.people_alt_outlined, title: 'إدارة الملفات الشخصية', subtitle: 'إضافة طالب أو التبديل بين الملفات', onTap: () => push(context, ProfilesPage(store: store))),
+          SettingsTile(icon: Icons.format_quote_rounded, title: 'الجمل التعليمية', subtitle: 'عرض الجمل الإنجليزية وترجمتها مع النطق', onTap: () => push(context, SentencesPage(store: store))),
           const SectionTitle('النسخ الاحتياطي ونقل البيانات'),
           SettingsTile(icon: Icons.cloud_upload_outlined, title: 'تصدير نسخة احتياطية كاملة', subtitle: 'الكلمات والتقدم والنقاط والملفات الشخصية', onTap: () async { try { await store.shareBackup(); } catch (e) { if (context.mounted) snack(context, 'تعذر إنشاء النسخة: $e'); } }),
           SettingsTile(icon: Icons.restore_rounded, title: 'استعادة نسخة احتياطية', subtitle: 'يدعم الدمج أو الاستبدال', onTap: () => restoreDialog(context)),
@@ -802,21 +1003,108 @@ class SettingsTile extends StatelessWidget {
 }
 
 void showWord(BuildContext context, Store store, WordItem w) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    showDragHandle: true,
-    builder: (_) => SafeArea(child: Padding(
-      padding: const EdgeInsets.fromLTRB(24, 10, 24, 28),
-      child: Column(mainAxisSize: MainAxisSize.min, children: [
-        Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900)),
-        IconButton(iconSize: 34, icon: const Icon(Icons.volume_up_rounded), onPressed: () => store.speak(w.en)),
-        Text(w.ar, style: const TextStyle(fontSize: 27, fontWeight: FontWeight.w800)),
-        if (w.exampleEn.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 18), child: Text(w.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18))),
-        if (w.exampleAr.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(w.exampleAr, textAlign: TextAlign.center)),
-      ]),
-    )),
-  );
+  push(context, WordCardPage(store: store, word: w));
+}
+
+class WordCardPage extends StatefulWidget {
+  final Store store;
+  final WordItem word;
+  const WordCardPage({super.key, required this.store, required this.word});
+
+  @override
+  State<WordCardPage> createState() => _WordCardPageState();
+}
+
+class _WordCardPageState extends State<WordCardPage> {
+  bool reveal = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final word = widget.word;
+    return Scaffold(
+      appBar: AppBar(title: const Text('بطاقة الكلمة')),
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(24, 34, 24, 30),
+                child: Column(
+                  children: [
+                    Text(
+                      word.en,
+                      textDirection: TextDirection.ltr,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900),
+                    ),
+                    const SizedBox(height: 14),
+                    FilledButton.tonalIcon(
+                      onPressed: () => widget.store.speak(word.en),
+                      icon: const Icon(Icons.volume_up_rounded),
+                      label: const Text('استمع إلى النطق'),
+                    ),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () => setState(() => reveal = !reveal),
+                      icon: Icon(reveal ? Icons.visibility_off : Icons.translate_rounded),
+                      label: Text(reveal ? 'إخفاء المعنى' : 'إظهار المعنى'),
+                    ),
+                    AnimatedSize(
+                      duration: const Duration(milliseconds: 220),
+                      child: !reveal
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding: const EdgeInsets.only(top: 28),
+                              child: Column(
+                                children: [
+                                  Text(
+                                    word.ar,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w900),
+                                  ),
+                                  if (word.exampleEn.isNotEmpty) ...[
+                                    const SizedBox(height: 26),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: Text(
+                                            word.exampleEn,
+                                            textDirection: TextDirection.ltr,
+                                            textAlign: TextAlign.center,
+                                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
+                                          ),
+                                        ),
+                                        IconButton(
+                                          tooltip: 'نطق الجملة',
+                                          icon: const Icon(Icons.volume_up_rounded),
+                                          onPressed: () => widget.store.speak(word.exampleEn),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                  if (word.exampleAr.isNotEmpty)
+                                    Padding(
+                                      padding: const EdgeInsets.only(top: 10),
+                                      child: Text(
+                                        word.exampleAr,
+                                        textAlign: TextAlign.center,
+                                        style: const TextStyle(fontSize: 17, color: Color(0xff6f7d94)),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 void push(BuildContext context, Widget page) => Navigator.push(context, MaterialPageRoute(builder: (_) => page));

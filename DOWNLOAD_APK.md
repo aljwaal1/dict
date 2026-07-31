@@ -4,6 +4,6 @@
 
 `apk/qamoosi-school.apk`
 
-اسم الإصدار الحالي:
+نسخة الإصدار:
 
 `apk/qamoosi-school-v2.0.0.apk`
