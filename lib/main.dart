@@ -521,6 +521,7 @@ class GradeWordsPage extends StatelessWidget {
 class FlashCardsPage extends StatefulWidget {
   final Store store;
   const FlashCardsPage({super.key, required this.store});
+
   @override
   State<FlashCardsPage> createState() => _FlashCardsPageState();
 }
@@ -529,31 +530,136 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
   String grade = '1';
   int index = 0;
   bool reveal = false;
+
   @override
   Widget build(BuildContext context) {
     final list = widget.store.byGrade(grade);
-    final w = list.isEmpty ? null : list[index % list.length];
+    final word = list.isEmpty ? null : list[index % list.length];
+
     return Scaffold(
       appBar: AppBar(title: const Text('البطاقات التعليمية')),
       body: Padding(
         padding: const EdgeInsets.all(18),
-        child: Column(children: [
-          DropdownButtonFormField<String>(value: grade, items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(), onChanged: (v) => setState(() { grade = v ?? '1'; index = widget.store.lastIndex(grade); reveal = false; })),
-          const SizedBox(height: 22),
-          Expanded(child: w == null ? const Center(child: Text('لا توجد كلمات')) : Card(child: InkWell(
-            borderRadius: BorderRadius.circular(24),
-            onTap: () => setState(() => reveal = !reveal),
-            child: Center(child: Padding(padding: const EdgeInsets.all(30), child: AnimatedSwitcher(duration: const Duration(milliseconds: 220), child: reveal
-                ? Column(key: const ValueKey(1), mainAxisSize: MainAxisSize.min, children: [Text(w.ar, style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)), if (w.exampleAr.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 14), child: Text(w.exampleAr))])
-                : Column(key: const ValueKey(2), mainAxisSize: MainAxisSize.min, children: [Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 40, fontWeight: FontWeight.w900)), IconButton(iconSize: 34, icon: const Icon(Icons.volume_up_rounded), onPressed: () => widget.store.speak(w.en)), const Text('اضغط لإظهار المعنى')])))),
-          )))),
-          const SizedBox(height: 14),
-          Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: w == null ? null : () async { await widget.store.answer(w, false); if (mounted) setState(() { index = (index + 1) % list.length; reveal = false; }); }, icon: const Icon(Icons.refresh), label: const Text('تحتاج مراجعة'))),
-            const SizedBox(width: 12),
-            Expanded(child: FilledButton.icon(onPressed: w == null ? null : () async { await widget.store.answer(w, true); final next = (index + 1) % list.length; await widget.store.saveLastIndex(grade, next); if (mounted) setState(() { index = next; reveal = false; }); }, icon: const Icon(Icons.check), label: const Text('أتقنتها'))),
-          ]),
-        ]),
+        child: Column(
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: grade,
+              items: grades
+                  .map(
+                    (g) => DropdownMenuItem<String>(
+                      value: g,
+                      child: Text(gradeName(g)),
+                    ),
+                  )
+                  .toList(),
+              onChanged: (value) {
+                setState(() {
+                  grade = value ?? '1';
+                  index = widget.store.lastIndex(grade);
+                  reveal = false;
+                });
+              },
+            ),
+            const SizedBox(height: 22),
+            Expanded(
+              child: word == null
+                  ? const Center(child: Text('لا توجد كلمات'))
+                  : Card(
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(24),
+                        onTap: () => setState(() => reveal = !reveal),
+                        child: Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(30),
+                            child: AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              child: reveal
+                                  ? Column(
+                                      key: const ValueKey(1),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          word.ar,
+                                          style: const TextStyle(
+                                            fontSize: 34,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        if (word.exampleAr.isNotEmpty)
+                                          Padding(
+                                            padding: const EdgeInsets.only(top: 14),
+                                            child: Text(word.exampleAr),
+                                          ),
+                                      ],
+                                    )
+                                  : Column(
+                                      key: const ValueKey(2),
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          word.en,
+                                          textDirection: TextDirection.ltr,
+                                          style: const TextStyle(
+                                            fontSize: 40,
+                                            fontWeight: FontWeight.w900,
+                                          ),
+                                        ),
+                                        IconButton(
+                                          iconSize: 34,
+                                          icon: const Icon(Icons.volume_up_rounded),
+                                          onPressed: () => widget.store.speak(word.en),
+                                        ),
+                                        const Text('اضغط لإظهار المعنى'),
+                                      ],
+                                    ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: word == null
+                        ? null
+                        : () async {
+                            await widget.store.answer(word, false);
+                            if (!mounted) return;
+                            setState(() {
+                              index = (index + 1) % list.length;
+                              reveal = false;
+                            });
+                          },
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('تحتاج مراجعة'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: word == null
+                        ? null
+                        : () async {
+                            await widget.store.answer(word, true);
+                            final next = (index + 1) % list.length;
+                            await widget.store.saveLastIndex(grade, next);
+                            if (!mounted) return;
+                            setState(() {
+                              index = next;
+                              reveal = false;
+                            });
+                          },
+                    icon: const Icon(Icons.check),
+                    label: const Text('أتقنتها'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -565,7 +671,7 @@ class QuizSetupPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('اختر الصف')),
-        body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g)))).toList()),
+        body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g))))).toList()),
       );
 }
 
@@ -645,7 +751,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: const Text('الملفات الشخصية')),
         floatingActionButton: widget.store.profiles.length >= 3 ? null : FloatingActionButton.extended(onPressed: () async { final id = [1,2,3].firstWhere((e) => !widget.store.profiles.any((p) => p.id == e)); widget.store.profiles.add(Profile(id, 'الطالب $id')); await widget.store.prefs.setString('profiles', jsonEncode(widget.store.profiles.map((e) => e.toJson()).toList())); await widget.store.setActive(id); if (mounted) setState(() {}); }, icon: const Icon(Icons.add), label: const Text('إضافة ملف')),
-        body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); })).toList()),
+        body: ListView(padding: const EdgeInsets.all(16), children: widget.store.profiles.map((p) => Card(child: ListTile(leading: CircleAvatar(child: Text('${p.id}')), title: Text(p.name), trailing: p.id == widget.store.activeProfile ? const Icon(Icons.check_circle, color: Colors.green) : null, onTap: () async { await widget.store.setActive(p.id); if (mounted) setState(() {}); }))).toList()),
       );
 }
 

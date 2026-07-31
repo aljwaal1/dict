@@ -1,9 +1,9 @@
-# تحميل تطبيق قاموسي المدرسي
+# تحميل تطبيق قاموسي المدرسي للأندرويد
 
-بعد نجاح البناء، رابط APK المباشر داخل المستودع:
+أحدث نسخة جاهزة للتثبيت:
 
 `apk/qamoosi-school.apk`
 
-أو من GitHub:
+اسم الإصدار الحالي:
 
-`https://github.com/aljwaal1/dict/raw/main/apk/qamoosi-school.apk`
+`apk/qamoosi-school-v2.0.0.apk`
