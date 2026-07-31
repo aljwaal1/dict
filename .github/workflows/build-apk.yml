@@ -45,6 +45,169 @@ jobs:
           rm -rf test
           flutter pub get
 
+      - name: Repair Flutter source syntax
+        run: |
+          python3 <<'PYFIX'
+          from pathlib import Path
+
+          path = Path('lib/main.dart')
+          text = path.read_text(encoding='utf-8')
+          start = text.index('class FlashCardsPage extends StatefulWidget')
+          end = text.index('class QuizSetupPage extends StatelessWidget')
+
+          replacement = r'''class FlashCardsPage extends StatefulWidget {
+            final Store store;
+            const FlashCardsPage({super.key, required this.store});
+
+            @override
+            State<FlashCardsPage> createState() => _FlashCardsPageState();
+          }
+
+          class _FlashCardsPageState extends State<FlashCardsPage> {
+            String grade = '1';
+            int index = 0;
+            bool reveal = false;
+
+            @override
+            Widget build(BuildContext context) {
+              final list = widget.store.byGrade(grade);
+              final word = list.isEmpty ? null : list[index % list.length];
+
+              return Scaffold(
+                appBar: AppBar(title: const Text('البطاقات التعليمية')),
+                body: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: grade,
+                        items: grades
+                            .map(
+                              (g) => DropdownMenuItem<String>(
+                                value: g,
+                                child: Text(gradeName(g)),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            grade = value ?? '1';
+                            index = widget.store.lastIndex(grade);
+                            reveal = false;
+                          });
+                        },
+                      ),
+                      const SizedBox(height: 22),
+                      Expanded(
+                        child: word == null
+                            ? const Center(child: Text('لا توجد كلمات'))
+                            : Card(
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(24),
+                                  onTap: () => setState(() => reveal = !reveal),
+                                  child: Center(
+                                    child: Padding(
+                                      padding: const EdgeInsets.all(30),
+                                      child: AnimatedSwitcher(
+                                        duration: const Duration(milliseconds: 220),
+                                        child: reveal
+                                            ? Column(
+                                                key: const ValueKey(1),
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    word.ar,
+                                                    style: const TextStyle(
+                                                      fontSize: 34,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                  if (word.exampleAr.isNotEmpty)
+                                                    Padding(
+                                                      padding: const EdgeInsets.only(top: 14),
+                                                      child: Text(word.exampleAr),
+                                                    ),
+                                                ],
+                                              )
+                                            : Column(
+                                                key: const ValueKey(2),
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Text(
+                                                    word.en,
+                                                    textDirection: TextDirection.ltr,
+                                                    style: const TextStyle(
+                                                      fontSize: 40,
+                                                      fontWeight: FontWeight.w900,
+                                                    ),
+                                                  ),
+                                                  IconButton(
+                                                    iconSize: 34,
+                                                    icon: const Icon(Icons.volume_up_rounded),
+                                                    onPressed: () => widget.store.speak(word.en),
+                                                  ),
+                                                  const Text('اضغط لإظهار المعنى'),
+                                                ],
+                                              ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: word == null
+                                  ? null
+                                  : () async {
+                                      await widget.store.answer(word, false);
+                                      if (!mounted) return;
+                                      setState(() {
+                                        index = (index + 1) % list.length;
+                                        reveal = false;
+                                      });
+                                    },
+                              icon: const Icon(Icons.refresh),
+                              label: const Text('تحتاج مراجعة'),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: FilledButton.icon(
+                              onPressed: word == null
+                                  ? null
+                                  : () async {
+                                      await widget.store.answer(word, true);
+                                      final next = (index + 1) % list.length;
+                                      await widget.store.saveLastIndex(grade, next);
+                                      if (!mounted) return;
+                                      setState(() {
+                                        index = next;
+                                        reveal = false;
+                                      });
+                                    },
+                              icon: const Icon(Icons.check),
+                              label: const Text('أتقنتها'),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }
+          }
+
+          '''
+
+          path.write_text(text[:start] + replacement + text[end:], encoding='utf-8')
+          print('Repaired lib/main.dart flash cards section')
+          PYFIX
+
       - name: Install Android SDK 36
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
@@ -129,9 +292,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Commit APK to main
+      - name: Commit fixed source and APK to main
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.0.0
-          file_pattern: apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
+          commit_message: Fix Flutter syntax and build qamoosi school APK v2.0.0
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
