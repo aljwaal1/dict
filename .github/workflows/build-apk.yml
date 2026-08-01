@@ -47,10 +47,10 @@ jobs:
       - name: Restore content features
         run: python3 tool/patch_content.py
 
-      - name: Improve cards and pronunciation
+      - name: Improve pronunciation
         run: python3 tool/patch_pronunciation.py
 
-      - name: Add JSON Excel imports
+      - name: Add JSON Excel and CSV imports
         run: python3 tool/patch_import_files.py
 
       - name: Separate card controls
@@ -72,7 +72,7 @@ jobs:
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.0.apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.1.apk
           cat > DOWNLOAD_APK.md <<'EOF'
           # تحميل تطبيق قاموسي المدرسي للأندرويد
 
@@ -80,16 +80,16 @@ jobs:
 
           `apk/qamoosi-school.apk`
 
-          نسخة الإصدار:
+          نسخة الإصدار 2.0.1:
 
-          `apk/qamoosi-school-v2.0.0.apk`
+          `apk/qamoosi-school-v2.0.1.apk`
           EOF
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.0.0-apk
-          path: apk/qamoosi-school-v2.0.0.apk
+          name: qamoosi-school-v2.0.1-apk
+          path: apk/qamoosi-school-v2.0.1.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -97,5 +97,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Add JSON Excel imports and separate card controls
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
+          commit_message: Build qamoosi school APK v2.0.1 with Excel and JSON import
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.1.apk DOWNLOAD_APK.md
