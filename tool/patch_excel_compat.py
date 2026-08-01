@@ -15,25 +15,22 @@ if "import 'package:archive/archive.dart';" not in text:
 helper = r'''  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
     try {
       return excel_lib.Excel.decodeBytes(bytes);
-    } catch (_) {
+    } catch (firstError) {
       final archive = ZipDecoder().decodeBytes(bytes, verify: true);
       final repaired = Archive();
 
       for (final file in archive.files) {
-        if (!file.isFile || file.name == 'xl/styles.xml') continue;
-
+        if (!file.isFile) continue;
         var data = List<int>.from(file.content as List<int>);
-        if (file.name == '[Content_Types].xml' ||
-            file.name == 'xl/_rels/workbook.xml.rels') {
+
+        if (file.name == 'xl/styles.xml') {
           var xml = utf8.decode(data, allowMalformed: true);
-          xml = xml.replaceAll(
-            RegExp(r'<Override[^>]*PartName="/xl/styles.xml"[^>]*/>'),
-            '',
-          );
-          xml = xml.replaceAll(
-            RegExp(r'<Relationship[^>]*Type="[^"]*/styles"[^>]*/>'),
-            '',
-          );
+          // Some valid XLSX files use a namespace prefix such as x:styleSheet.
+          // The Dart excel parser may incorrectly report these as damaged.
+          xml = xml
+              .replaceAll('xmlns:x=', 'xmlns=')
+              .replaceAll('<x:', '<')
+              .replaceAll('</x:', '</');
           data = utf8.encode(xml);
         }
 
@@ -41,7 +38,7 @@ helper = r'''  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
       }
 
       final encoded = ZipEncoder().encode(repaired);
-      if (encoded == null) rethrow;
+      if (encoded == null) throw firstError;
       return excel_lib.Excel.decodeBytes(Uint8List.fromList(encoded));
     }
   }
@@ -51,6 +48,11 @@ helper = r'''  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
 marker = '  Future<int> importExcelWords() async {'
 if '_decodeExcelCompat(Uint8List bytes)' not in text:
     text = text.replace(marker, helper + marker)
+else:
+    start = text.find('  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {')
+    end = text.find(marker, start)
+    if start != -1 and end != -1:
+        text = text[:start] + helper + text[end:]
 
 text = text.replace(
     'final workbook = excel_lib.Excel.decodeBytes(bytes);',
@@ -58,4 +60,4 @@ text = text.replace(
 )
 
 path.write_text(text, encoding='utf-8')
-print('Restored compatible Excel import with style-free fallback')
+print('Fixed Excel style namespace compatibility')
