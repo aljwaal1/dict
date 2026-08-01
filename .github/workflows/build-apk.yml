@@ -7,14 +7,12 @@ on:
     paths-ignore:
       - "apk/**"
       - "DOWNLOAD_APK.md"
-  pull_request:
-    branches: ["main"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-apk-${{ github.ref }}
+  group: build-apk-main
   cancel-in-progress: true
 
 jobs:
@@ -55,6 +53,9 @@ jobs:
       - name: Add JSON Excel and CSV imports
         run: python3 tool/patch_import_files.py
 
+      - name: Repair damaged Excel styles
+        run: python3 tool/patch_excel_repair.py
+
       - name: Separate card controls
         run: python3 tool/patch_card_controls.py
 
@@ -70,7 +71,6 @@ jobs:
           for m in reversed(matches[1:]):
               text = text[:m.start()] + text[m.end():]
           p.write_text(text, encoding='utf-8')
-          print(f'Removed {max(0, len(matches)-1)} duplicate helper(s)')
           PY
 
       - name: Configure Android
@@ -89,20 +89,19 @@ jobs:
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.1.apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.2.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.0.1-apk
-          path: apk/qamoosi-school-v2.0.1.apk
+          name: qamoosi-school-v2.0.2-apk
+          path: apk/qamoosi-school-v2.0.2.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Commit source and APK to main
-        if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.0.1 with Excel and JSON import
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.1.apk DOWNLOAD_APK.md
+          commit_message: Build qamoosi school APK v2.0.2 with Excel repair
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.2.apk
