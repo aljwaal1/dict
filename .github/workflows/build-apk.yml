@@ -76,11 +76,23 @@ jobs:
           p.write_text(text, encoding='utf-8')
           PY
 
-      - name: Configure Android
+      - name: Apply final root fixes
+        run: python3 tool/patch_final_v210.py
+
+      - name: Configure Android and TTS discovery
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
           sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
           sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('android/app/src/main/AndroidManifest.xml')
+          text = p.read_text(encoding='utf-8')
+          if 'android.intent.action.TTS_SERVICE' not in text:
+              queries = '''\n    <queries>\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>\n'''
+              text = text.replace('<application', queries + '    <application', 1)
+          p.write_text(text, encoding='utf-8')
+          PY
 
       - name: Analyze project
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
@@ -92,13 +104,13 @@ jobs:
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.2.apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.1.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.0.2-apk
-          path: apk/qamoosi-school-v2.0.2.apk
+          name: qamoosi-school-v2.1.0-apk
+          path: apk/qamoosi-school-v2.1.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -106,5 +118,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.0.2 with corrected visible version
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.2.apk
+          commit_message: Build qamoosi school APK v2.1.0 final root fixes
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.1.0.apk
