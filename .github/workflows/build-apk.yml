@@ -7,12 +7,14 @@ on:
     paths-ignore:
       - "apk/**"
       - "DOWNLOAD_APK.md"
+  pull_request:
+    branches: ["main"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-apk-main
+  group: build-apk-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -73,17 +75,6 @@ jobs:
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.0.1.apk
-          cat > DOWNLOAD_APK.md <<'EOF'
-          # تحميل تطبيق قاموسي المدرسي للأندرويد
-
-          أحدث نسخة جاهزة للتثبيت:
-
-          `apk/qamoosi-school.apk`
-
-          نسخة الإصدار 2.0.1:
-
-          `apk/qamoosi-school-v2.0.1.apk`
-          EOF
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -94,6 +85,7 @@ jobs:
           retention-days: 30
 
       - name: Commit source and APK to main
+        if: github.event_name == 'push'
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
