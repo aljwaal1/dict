@@ -13,9 +13,10 @@ import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xml/xml.dart';
 
 const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.0.2';
+const appVersion = '2.1.0';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -116,6 +117,8 @@ class Profile {
 
 class Store extends ChangeNotifier {
   final tts = FlutterTts();
+  bool ttsReady = false;
+  String ttsLanguage = 'en-US';
   late SharedPreferences prefs;
   List<WordItem> words = [];
   List<Profile> profiles = [];
@@ -140,11 +143,7 @@ class Store extends ChangeNotifier {
         : (jsonDecode(rawProfiles) as List).map((e) => Profile.fromJson(Map<String, dynamic>.from(e))).toList();
     await _loadWords();
     await loadProgress();
-    await tts.setLanguage('en-US');
-    await tts.setSpeechRate(.38);
-    await tts.setPitch(1.0);
-    await tts.setVolume(1.0);
-    await tts.awaitSpeakCompletion(true);
+    await _configureTts();
   }
 
   Future<void> _loadWords() async {
@@ -208,33 +207,60 @@ class Store extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> speak(String text) async {
-    final value = text.trim();
-    if (!sound || value.isEmpty) return;
+  Future<bool> _configureTts() async {
     try {
-      SystemSound.play(SystemSoundType.click);
-      await tts.stop();
-      await tts.setLanguage('en-US');
-      await tts.setSpeechRate(.38);
+      await tts.awaitSpeakCompletion(false);
+      await tts.setSpeechRate(.42);
       await tts.setPitch(1.0);
       await tts.setVolume(1.0);
-      await tts.speak(value);
+      const candidates = ['en-US', 'en-GB', 'en-AU', 'en'];
+      for (final language in candidates) {
+        try {
+          final result = await tts.setLanguage(language);
+          if (result == 1 || result == true || result == null) {
+            ttsLanguage = language;
+            ttsReady = true;
+            return true;
+          }
+        } catch (_) {}
+      }
+      ttsReady = false;
+      return false;
     } catch (_) {
-      // Keep the app usable even when the device has no English TTS engine.
+      ttsReady = false;
+      return false;
+    }
+  }
+
+  Future<bool> speak(String text) async {
+    final value = text.trim();
+    if (!sound || value.isEmpty) return false;
+    try {
+      if (!ttsReady && !await _configureTts()) return false;
+      await tts.stop();
+      await tts.setLanguage(ttsLanguage);
+      await tts.setSpeechRate(.42);
+      await tts.setPitch(1.0);
+      await tts.setVolume(1.0);
+      final result = await tts.speak(value);
+      return result == 1 || result == true || result == null;
+    } catch (_) {
+      ttsReady = false;
+      if (!await _configureTts()) return false;
+      try {
+        final result = await tts.speak(value);
+        return result == 1 || result == true || result == null;
+      } catch (_) {
+        return false;
+      }
     }
   }
 
   Future<bool> testPronunciation() async {
     if (!sound) return false;
-    try {
-      final available = await tts.isLanguageAvailable('en-US');
-      if (available != true && available != 1) return false;
-      await speak('Welcome to my school dictionary');
-      return true;
-    } catch (_) {
-      return false;
-    }
+    return speak('Welcome to my school dictionary');
   }
+
 
 
 
@@ -430,35 +456,71 @@ class Store extends ChangeNotifier {
     );
   }
 
-  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
-    try {
-      return excel_lib.Excel.decodeBytes(bytes);
-    } catch (firstError) {
-      final archive = ZipDecoder().decodeBytes(bytes, verify: true);
-      final repaired = Archive();
-
-      for (final file in archive.files) {
-        if (!file.isFile) continue;
-        var data = List<int>.from(file.content as List<int>);
-
-        if (file.name == 'xl/styles.xml') {
-          var xml = utf8.decode(data, allowMalformed: true);
-          // Some valid XLSX files use a namespace prefix such as x:styleSheet.
-          // The Dart excel parser may incorrectly report these as damaged.
-          xml = xml
-              .replaceAll('xmlns:x=', 'xmlns=')
-              .replaceAll('<x:', '<')
-              .replaceAll('</x:', '</');
-          data = utf8.encode(xml);
-        }
-
-        repaired.addFile(ArchiveFile(file.name, data.length, data));
-      }
-
-      final encoded = ZipEncoder().encode(repaired);
-      if (encoded == null) throw firstError;
-      return excel_lib.Excel.decodeBytes(Uint8List.fromList(encoded));
+  List<List<String>> _readXlsxRows(Uint8List bytes) {
+    final archive = ZipDecoder().decodeBytes(bytes, verify: true);
+    final files = <String, List<int>>{};
+    for (final file in archive.files) {
+      if (!file.isFile) continue;
+      files[file.name] = List<int>.from(file.content as List<int>);
     }
+
+    final shared = <String>[];
+    final sharedBytes = files['xl/sharedStrings.xml'];
+    if (sharedBytes != null) {
+      final doc = XmlDocument.parse(utf8.decode(sharedBytes, allowMalformed: true));
+      for (final si in doc.descendants.whereType<XmlElement>().where((e) => e.name.local == 'si')) {
+        shared.add(si.descendants.whereType<XmlElement>().where((e) => e.name.local == 't').map((e) => e.innerText).join());
+      }
+    }
+
+    int columnIndex(String reference) {
+      final letters = RegExp(r'^[A-Za-z]+').firstMatch(reference)?.group(0)?.toUpperCase() ?? 'A';
+      var value = 0;
+      for (final code in letters.codeUnits) value = value * 26 + code - 64;
+      return value - 1;
+    }
+
+    final sheetNames = files.keys.where((name) => RegExp(r'^xl/worksheets/sheet\d+\.xml$').hasMatch(name)).toList()
+      ..sort((a, b) {
+        final na = int.tryParse(RegExp(r'\d+').firstMatch(a)?.group(0) ?? '') ?? 0;
+        final nb = int.tryParse(RegExp(r'\d+').firstMatch(b)?.group(0) ?? '') ?? 0;
+        return na.compareTo(nb);
+      });
+    if (sheetNames.isEmpty) throw Exception('ملف Excel لا يحتوي على أوراق قابلة للقراءة');
+
+    final allRows = <List<String>>[];
+    for (final name in sheetNames) {
+      final doc = XmlDocument.parse(utf8.decode(files[name]!, allowMalformed: true));
+      for (final rowElement in doc.descendants.whereType<XmlElement>().where((e) => e.name.local == 'row')) {
+        final values = <int, String>{};
+        var maxColumn = -1;
+        for (final cell in rowElement.children.whereType<XmlElement>().where((e) => e.name.local == 'c')) {
+          final ref = cell.getAttribute('r') ?? 'A1';
+          final col = columnIndex(ref);
+          maxColumn = max(maxColumn, col);
+          final type = cell.getAttribute('t') ?? '';
+          String value = '';
+          if (type == 'inlineStr') {
+            value = cell.descendants.whereType<XmlElement>().where((e) => e.name.local == 't').map((e) => e.innerText).join();
+          } else {
+            final raw = cell.descendants.whereType<XmlElement>().where((e) => e.name.local == 'v').map((e) => e.innerText).firstOrNull ?? '';
+            if (type == 's') {
+              final index = int.tryParse(raw) ?? -1;
+              value = index >= 0 && index < shared.length ? shared[index] : '';
+            } else if (type == 'b') {
+              value = raw == '1' ? 'true' : 'false';
+            } else {
+              value = raw;
+            }
+          }
+          values[col] = value.trim();
+        }
+        if (maxColumn >= 0) {
+          allRows.add(List<String>.generate(maxColumn + 1, (i) => values[i] ?? ''));
+        }
+      }
+    }
+    return allRows;
   }
 
   Future<int> importExcelWords() async {
@@ -475,68 +537,59 @@ class Store extends ChangeNotifier {
     final imported = <WordItem>[];
     var nextId = words.isEmpty ? 1 : words.map((w) => w.id).reduce(max) + 1;
 
-    if (extension == 'csv') {
-      final lines = const LineSplitter().convert(utf8.decode(bytes).replaceFirst('\ufeff', ''));
-      if (lines.isEmpty) throw Exception('ملف CSV فارغ');
-      List<String> parseCsvLine(String line) {
-        final values = <String>[];
-        final current = StringBuffer();
-        var quoted = false;
-        for (var i = 0; i < line.length; i++) {
-          final char = line[i];
-          if (char == '"') {
-            if (quoted && i + 1 < line.length && line[i + 1] == '"') {
-              current.write('"');
-              i++;
-            } else {
-              quoted = !quoted;
-            }
-          } else if (char == ',' && !quoted) {
-            values.add(current.toString());
-            current.clear();
+    List<String> parseCsvLine(String line) {
+      final values = <String>[];
+      final current = StringBuffer();
+      var quoted = false;
+      for (var i = 0; i < line.length; i++) {
+        final char = line[i];
+        if (char == '"') {
+          if (quoted && i + 1 < line.length && line[i + 1] == '"') {
+            current.write('"');
+            i++;
           } else {
-            current.write(char);
+            quoted = !quoted;
           }
+        } else if (char == ',' && !quoted) {
+          values.add(current.toString());
+          current.clear();
+        } else {
+          current.write(char);
         }
-        values.add(current.toString());
-        return values;
       }
+      values.add(current.toString());
+      return values;
+    }
+
+    if (extension == 'csv') {
+      final lines = const LineSplitter().convert(utf8.decode(bytes, allowMalformed: true).replaceFirst('\ufeff', ''));
+      if (lines.isEmpty) throw Exception('ملف CSV فارغ');
       final headers = parseCsvLine(lines.first).map(_normalizeHeader).toList();
       for (final line in lines.skip(1)) {
         if (line.trim().isEmpty) continue;
-        final values = parseCsvLine(line);
+        final cells = parseCsvLine(line);
         final row = <String, String>{};
-        for (var i = 0; i < headers.length; i++) {
-          row[headers[i]] = i < values.length ? values[i].trim() : '';
-        }
+        for (var i = 0; i < headers.length; i++) row[headers[i]] = i < cells.length ? cells[i].trim() : '';
         final word = _wordFromImportRow(row, nextId);
-        if (word != null) {
-          imported.add(word);
-          nextId++;
-        }
+        if (word != null) { imported.add(word); nextId++; }
       }
     } else {
-      final workbook = _decodeExcelCompat(Uint8List.fromList(bytes));
-      if (workbook.tables.isEmpty) throw Exception('ملف Excel لا يحتوي على أوراق');
-      final sheet = workbook.tables.values.first;
-      if (sheet.rows.isEmpty) throw Exception('ورقة Excel فارغة');
-      final headers = sheet.rows.first.map((cell) => _normalizeHeader(_cellText(cell?.value))).toList();
-      for (final cells in sheet.rows.skip(1)) {
+      final rows = _readXlsxRows(Uint8List.fromList(bytes));
+      if (rows.isEmpty) throw Exception('ورقة Excel فارغة');
+      var headers = <String>[];
+      for (final cells in rows) {
+        if (cells.every((v) => v.trim().isEmpty)) continue;
+        if (headers.isEmpty) {
+          headers = cells.map(_normalizeHeader).toList();
+          continue;
+        }
         final row = <String, String>{};
-        for (var i = 0; i < headers.length; i++) {
-          row[headers[i]] = i < cells.length ? _cellText(cells[i]?.value) : '';
-        }
+        for (var i = 0; i < headers.length; i++) row[headers[i]] = i < cells.length ? cells[i].trim() : '';
         final word = _wordFromImportRow(row, nextId);
-        if (word != null) {
-          imported.add(word);
-          nextId++;
-        }
+        if (word != null) { imported.add(word); nextId++; }
       }
     }
-
-    if (imported.isEmpty) {
-      throw Exception('لم يتم العثور على صفوف صالحة. تأكد من أسماء الأعمدة');
-    }
+    if (imported.isEmpty) throw Exception('لم يتم العثور على كلمات صالحة. يجب أن يحتوي الصف الأول على عناوين الأعمدة');
     return _mergeImportedWords(imported);
   }
 
@@ -712,7 +765,7 @@ class _DictionaryPageState extends State<DictionaryPage> {
                 title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 subtitle: Text('${w.ar} • ${gradeName(w.grade)}'),
                 trailing: IconButton(icon: const Icon(Icons.volume_up_rounded), onPressed: () => widget.store.speak(w.en)),
-                onTap: () => showWord(context, widget.store, w),
+                onTap: () => showWord(context, widget.store, w, source: list, initialIndex: i),
               ));
             },
           ),
@@ -779,7 +832,7 @@ class GradeWordsPage extends StatelessWidget {
             ),
             onTap: () async {
               await store.saveLastIndex(grade, i);
-              if (context.mounted) showWord(context, store, w);
+              if (context.mounted) showWord(context, store, w, source: list, initialIndex: i);
             },
           ));
         },
@@ -799,137 +852,116 @@ class FlashCardsPage extends StatefulWidget {
 class _FlashCardsPageState extends State<FlashCardsPage> {
   String grade = '1';
   int index = 0;
-  bool reveal = false;
+  bool showMeaning = false;
+  bool showExample = false;
+
+  void move(int delta, int length) {
+    if (length == 0) return;
+    setState(() {
+      index = (index + delta) % length;
+      if (index < 0) index += length;
+      showMeaning = false;
+      showExample = false;
+    });
+    widget.store.saveLastIndex(grade, index);
+  }
+
+  Future<void> pronounce(BuildContext context, String value) async {
+    final ok = await widget.store.speak(value);
+    if (!ok && context.mounted) snack(context, 'تعذر تشغيل النطق. فعّل محرك تحويل النص إلى كلام الإنجليزي من إعدادات الهاتف');
+  }
 
   @override
   Widget build(BuildContext context) {
     final list = widget.store.byGrade(grade);
-    final word = list.isEmpty ? null : list[index % list.length];
-
+    if (list.isNotEmpty && index >= list.length) index = 0;
+    final word = list.isEmpty ? null : list[index];
+    final hasExample = word != null && (word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty);
     return Scaffold(
       appBar: AppBar(title: const Text('البطاقات التعليمية')),
       body: Padding(
-        padding: const EdgeInsets.all(18),
-        child: Column(
-          children: [
-            DropdownButtonFormField<String>(
-              initialValue: grade,
-              items: grades
-                  .map(
-                    (g) => DropdownMenuItem<String>(
-                      value: g,
-                      child: Text(gradeName(g)),
-                    ),
-                  )
-                  .toList(),
-              onChanged: (value) {
-                setState(() {
-                  grade = value ?? '1';
-                  index = widget.store.lastIndex(grade);
-                  reveal = false;
-                });
-              },
-            ),
-            const SizedBox(height: 22),
-            Expanded(
-              child: word == null
-                  ? const Center(child: Text('لا توجد كلمات'))
-                  : Card(
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(24),
-                        onTap: () => setState(() => reveal = !reveal),
-                        child: Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(30),
-                            child: AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 220),
-                              child: reveal
-                                  ? Column(
-                                      key: const ValueKey(1),
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          word.ar,
-                                          style: const TextStyle(
-                                            fontSize: 34,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        if (word.exampleAr.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 14),
-                                            child: Text(word.exampleAr),
-                                          ),
-                                      ],
-                                    )
-                                  : Column(
-                                      key: const ValueKey(2),
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          word.en,
-                                          textDirection: TextDirection.ltr,
-                                          style: const TextStyle(
-                                            fontSize: 40,
-                                            fontWeight: FontWeight.w900,
-                                          ),
-                                        ),
-                                        IconButton(
-                                          iconSize: 34,
-                                          icon: const Icon(Icons.volume_up_rounded),
-                                          onPressed: () => widget.store.speak(word.en),
-                                        ),
-                                        const Text('اضغط لإظهار المعنى'),
-                                      ],
-                                    ),
-                            ),
+        padding: const EdgeInsets.all(16),
+        child: Column(children: [
+          DropdownButtonFormField<String>(
+            initialValue: grade,
+            items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
+            onChanged: (value) => setState(() {
+              grade = value ?? '1';
+              index = widget.store.lastIndex(grade);
+              showMeaning = false;
+              showExample = false;
+            }),
+          ),
+          const SizedBox(height: 12),
+          if (word != null) Text('${index + 1} / ${list.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
+          const SizedBox(height: 8),
+          Expanded(
+            child: word == null
+                ? const Center(child: Text('لا توجد كلمات في هذا الصف'))
+                : GestureDetector(
+                    onHorizontalDragEnd: (details) {
+                      final v = details.primaryVelocity ?? 0;
+                      if (v < -100) move(1, list.length);
+                      if (v > 100) move(-1, list.length);
+                    },
+                    child: Card(
+                      child: ListView(
+                        padding: const EdgeInsets.all(24),
+                        children: [
+                          const SizedBox(height: 22),
+                          Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900)),
+                          const SizedBox(height: 24),
+                          FilledButton.tonalIcon(
+                            onPressed: () => pronounce(context, word.en),
+                            icon: const Icon(Icons.volume_up_rounded),
+                            label: const Text('لفظ الكلمة'),
                           ),
-                        ),
+                          const SizedBox(height: 12),
+                          if (hasExample) OutlinedButton.icon(
+                            onPressed: () => setState(() => showExample = !showExample),
+                            icon: const Icon(Icons.format_quote_rounded),
+                            label: Text(showExample ? 'إخفاء مثال الجملة' : 'إظهار مثال الجملة'),
+                          ),
+                          if (hasExample) const SizedBox(height: 12),
+                          FilledButton.icon(
+                            onPressed: () => setState(() => showMeaning = !showMeaning),
+                            icon: const Icon(Icons.translate_rounded),
+                            label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'),
+                          ),
+                          if (showMeaning) Padding(
+                            padding: const EdgeInsets.only(top: 24),
+                            child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
+                          ),
+                          if (showExample) Container(
+                            margin: const EdgeInsets.only(top: 20),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(18)),
+                            child: Column(children: [
+                              if (word.exampleEn.isNotEmpty) Row(children: [
+                                Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
+                                IconButton(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded)),
+                              ]),
+                              if (word.exampleAr.isNotEmpty) Text(word.exampleAr, textAlign: TextAlign.center),
+                            ]),
+                          ),
+                        ],
                       ),
                     ),
-            ),
-            const SizedBox(height: 14),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: word == null
-                        ? null
-                        : () async {
-                            await widget.store.answer(word, false);
-                            if (!mounted) return;
-                            setState(() {
-                              index = (index + 1) % list.length;
-                              reveal = false;
-                            });
-                          },
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('تحتاج مراجعة'),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: word == null
-                        ? null
-                        : () async {
-                            await widget.store.answer(word, true);
-                            final next = (index + 1) % list.length;
-                            await widget.store.saveLastIndex(grade, next);
-                            if (!mounted) return;
-                            setState(() {
-                              index = next;
-                              reveal = false;
-                            });
-                          },
-                    icon: const Icon(Icons.check),
-                    label: const Text('أتقنتها'),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: word == null ? null : () => move(-1, list.length), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('السابق'))),
+            const SizedBox(width: 10),
+            Expanded(child: FilledButton.icon(onPressed: word == null ? null : () => move(1, list.length), icon: const Icon(Icons.arrow_back_rounded), label: const Text('التالي'))),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            Expanded(child: OutlinedButton.icon(onPressed: word == null ? null : () async { await widget.store.answer(word, false); move(1, list.length); }, icon: const Icon(Icons.refresh), label: const Text('تحتاج مراجعة'))),
+            const SizedBox(width: 10),
+            Expanded(child: FilledButton.icon(onPressed: word == null ? null : () async { await widget.store.answer(word, true); move(1, list.length); }, icon: const Icon(Icons.check), label: const Text('أتقنتها'))),
+          ]),
+        ]),
       ),
     );
   }
@@ -1236,147 +1268,91 @@ class SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) => Card(child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7), leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(icon)), title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(subtitle), trailing: onTap == null ? null : const Icon(Icons.chevron_left), onTap: onTap));
 }
 
-void showWord(BuildContext context, Store store, WordItem w) {
-  push(context, WordCardPage(store: store, word: w));
+void showWord(BuildContext context, Store store, WordItem word, {List<WordItem>? source, int? initialIndex}) {
+  final list = (source == null || source.isEmpty) ? store.byGrade(word.grade) : source;
+  var index = initialIndex ?? list.indexWhere((item) => item.id == word.id);
+  if (index < 0) index = 0;
+  push(context, WordCardPage(store: store, words: list.isEmpty ? [word] : list, initialIndex: index));
 }
 
 class WordCardPage extends StatefulWidget {
   final Store store;
-  final WordItem word;
-  const WordCardPage({super.key, required this.store, required this.word});
+  final List<WordItem> words;
+  final int initialIndex;
+  const WordCardPage({super.key, required this.store, required this.words, required this.initialIndex});
 
   @override
   State<WordCardPage> createState() => _WordCardPageState();
 }
 
 class _WordCardPageState extends State<WordCardPage> {
+  late int index;
   bool showMeaning = false;
   bool showExample = false;
 
   @override
-  Widget build(BuildContext context) {
-    final word = widget.word;
-    final hasExample = word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty;
+  void initState() {
+    super.initState();
+    index = widget.initialIndex.clamp(0, widget.words.length - 1);
+  }
 
+  void move(int delta) {
+    setState(() {
+      index = (index + delta) % widget.words.length;
+      if (index < 0) index += widget.words.length;
+      showMeaning = false;
+      showExample = false;
+    });
+  }
+
+  Future<void> pronounce(String value) async {
+    final ok = await widget.store.speak(value);
+    if (!ok && mounted) snack(context, 'تعذر تشغيل النطق. ثبّت أو فعّل صوت اللغة الإنجليزية في إعدادات الهاتف');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final word = widget.words[index];
+    final hasExample = word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty;
     return Scaffold(
-      appBar: AppBar(title: const Text('بطاقة الكلمة')),
+      appBar: AppBar(title: Text('بطاقة الكلمة ${index + 1} / ${widget.words.length}')),
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            Card(
-              child: Padding(
+        child: GestureDetector(
+          onHorizontalDragEnd: (details) {
+            final v = details.primaryVelocity ?? 0;
+            if (v < -100) move(1);
+            if (v > 100) move(-1);
+          },
+          child: ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              Card(child: Padding(
                 padding: const EdgeInsets.fromLTRB(22, 34, 22, 28),
-                child: Column(
-                  children: [
-                    Text(
-                      word.en,
-                      textDirection: TextDirection.ltr,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 43, fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      gradeName(word.grade),
-                      style: const TextStyle(color: Color(0xff6f7d94)),
-                    ),
-                    const SizedBox(height: 26),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.tonalIcon(
-                        onPressed: () => widget.store.speak(word.en),
-                        icon: const Icon(Icons.volume_up_rounded),
-                        label: const Text('لفظ الكلمة'),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    if (hasExample)
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: () => setState(() => showExample = !showExample),
-                          icon: Icon(showExample ? Icons.expand_less_rounded : Icons.format_quote_rounded),
-                          label: Text(showExample ? 'إخفاء مثال الجملة' : 'مثال جملة'),
-                        ),
-                      ),
-                    if (hasExample) const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity,
-                      child: FilledButton.icon(
-                        onPressed: () => setState(() => showMeaning = !showMeaning),
-                        icon: Icon(showMeaning ? Icons.visibility_off_rounded : Icons.translate_rounded),
-                        label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'),
-                      ),
-                    ),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 220),
-                      child: !showExample
-                          ? const SizedBox.shrink()
-                          : Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(top: 20),
-                              padding: const EdgeInsets.all(18),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.secondaryContainer.withValues(alpha: .45),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Column(
-                                children: [
-                                  if (word.exampleEn.isNotEmpty)
-                                    Row(
-                                      children: [
-                                        Expanded(
-                                          child: Text(
-                                            word.exampleEn,
-                                            textDirection: TextDirection.ltr,
-                                            textAlign: TextAlign.center,
-                                            style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700),
-                                          ),
-                                        ),
-                                        IconButton.filledTonal(
-                                          tooltip: 'لفظ الجملة',
-                                          icon: const Icon(Icons.volume_up_rounded),
-                                          onPressed: () => widget.store.speak(word.exampleEn),
-                                        ),
-                                      ],
-                                    ),
-                                  if (word.exampleAr.isNotEmpty)
-                                    Padding(
-                                      padding: EdgeInsets.only(top: word.exampleEn.isEmpty ? 0 : 10),
-                                      child: Text(
-                                        word.exampleAr,
-                                        textAlign: TextAlign.center,
-                                        style: const TextStyle(fontSize: 17),
-                                      ),
-                                    ),
-                                ],
-                              ),
-                            ),
-                    ),
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 220),
-                      child: !showMeaning
-                          ? const SizedBox.shrink()
-                          : Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.only(top: 20),
-                              padding: const EdgeInsets.all(22),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.primaryContainer.withValues(alpha: .55),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                word.ar,
-                                textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 31, fontWeight: FontWeight.w900),
-                              ),
-                            ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+                child: Column(children: [
+                  Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 43, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  Text(gradeName(word.grade), style: const TextStyle(color: Color(0xff6f7d94))),
+                  const SizedBox(height: 24),
+                  SizedBox(width: double.infinity, child: FilledButton.tonalIcon(onPressed: () => pronounce(word.en), icon: const Icon(Icons.volume_up_rounded), label: const Text('لفظ الكلمة'))),
+                  const SizedBox(height: 12),
+                  if (hasExample) SizedBox(width: double.infinity, child: OutlinedButton.icon(onPressed: () => setState(() => showExample = !showExample), icon: const Icon(Icons.format_quote_rounded), label: Text(showExample ? 'إخفاء مثال الجملة' : 'إظهار مثال الجملة'))),
+                  if (hasExample) const SizedBox(height: 12),
+                  SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => setState(() => showMeaning = !showMeaning), icon: const Icon(Icons.translate_rounded), label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'))),
+                  if (showMeaning) Container(width: double.infinity, margin: const EdgeInsets.only(top: 20), padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20)), child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 31, fontWeight: FontWeight.w900))),
+                  if (showExample) Container(width: double.infinity, margin: const EdgeInsets.only(top: 20), padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(20)), child: Column(children: [
+                    if (word.exampleEn.isNotEmpty) Row(children: [Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700))), IconButton.filledTonal(onPressed: () => pronounce(word.exampleEn), icon: const Icon(Icons.volume_up_rounded))]),
+                    if (word.exampleAr.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(word.exampleAr, textAlign: TextAlign.center)),
+                  ])),
+                ]),
+              )),
+              const SizedBox(height: 12),
+              Row(children: [
+                Expanded(child: OutlinedButton.icon(onPressed: () => move(-1), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('السابق'))),
+                const SizedBox(width: 12),
+                Expanded(child: FilledButton.icon(onPressed: () => move(1), icon: const Icon(Icons.arrow_back_rounded), label: const Text('التالي'))),
+              ]),
+            ],
+          ),
         ),
       ),
     );
