@@ -15,7 +15,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.0.0';
+const appVersion = '2.0.2';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -238,6 +238,7 @@ class Store extends ChangeNotifier {
 
 
 
+
   Future<void> answer(WordItem word, bool correct) async {
     if (correct) {
       points += .5;
@@ -432,25 +433,22 @@ class Store extends ChangeNotifier {
   excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
     try {
       return excel_lib.Excel.decodeBytes(bytes);
-    } catch (_) {
+    } catch (firstError) {
       final archive = ZipDecoder().decodeBytes(bytes, verify: true);
       final repaired = Archive();
 
       for (final file in archive.files) {
-        if (!file.isFile || file.name == 'xl/styles.xml') continue;
-
+        if (!file.isFile) continue;
         var data = List<int>.from(file.content as List<int>);
-        if (file.name == '[Content_Types].xml' ||
-            file.name == 'xl/_rels/workbook.xml.rels') {
+
+        if (file.name == 'xl/styles.xml') {
           var xml = utf8.decode(data, allowMalformed: true);
-          xml = xml.replaceAll(
-            RegExp(r'<Override[^>]*PartName="/xl/styles.xml"[^>]*/>'),
-            '',
-          );
-          xml = xml.replaceAll(
-            RegExp(r'<Relationship[^>]*Type="[^"]*/styles"[^>]*/>'),
-            '',
-          );
+          // Some valid XLSX files use a namespace prefix such as x:styleSheet.
+          // The Dart excel parser may incorrectly report these as damaged.
+          xml = xml
+              .replaceAll('xmlns:x=', 'xmlns=')
+              .replaceAll('<x:', '<')
+              .replaceAll('</x:', '</');
           data = utf8.encode(xml);
         }
 
@@ -458,7 +456,7 @@ class Store extends ChangeNotifier {
       }
 
       final encoded = ZipEncoder().encode(repaired);
-      if (encoded == null) rethrow;
+      if (encoded == null) throw firstError;
       return excel_lib.Excel.decodeBytes(Uint8List.fromList(encoded));
     }
   }
