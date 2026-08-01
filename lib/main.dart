@@ -1,9 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart' as excel_lib;
+import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -235,6 +237,7 @@ class Store extends ChangeNotifier {
   }
 
 
+
   Future<void> answer(WordItem word, bool correct) async {
     if (correct) {
       points += .5;
@@ -426,6 +429,40 @@ class Store extends ChangeNotifier {
     );
   }
 
+  excel_lib.Excel _decodeExcelCompat(Uint8List bytes) {
+    try {
+      return excel_lib.Excel.decodeBytes(bytes);
+    } catch (_) {
+      final archive = ZipDecoder().decodeBytes(bytes, verify: true);
+      final repaired = Archive();
+
+      for (final file in archive.files) {
+        if (!file.isFile || file.name == 'xl/styles.xml') continue;
+
+        var data = List<int>.from(file.content as List<int>);
+        if (file.name == '[Content_Types].xml' ||
+            file.name == 'xl/_rels/workbook.xml.rels') {
+          var xml = utf8.decode(data, allowMalformed: true);
+          xml = xml.replaceAll(
+            RegExp(r'<Override[^>]*PartName="/xl/styles.xml"[^>]*/>'),
+            '',
+          );
+          xml = xml.replaceAll(
+            RegExp(r'<Relationship[^>]*Type="[^"]*/styles"[^>]*/>'),
+            '',
+          );
+          data = utf8.encode(xml);
+        }
+
+        repaired.addFile(ArchiveFile(file.name, data.length, data));
+      }
+
+      final encoded = ZipEncoder().encode(repaired);
+      if (encoded == null) rethrow;
+      return excel_lib.Excel.decodeBytes(Uint8List.fromList(encoded));
+    }
+  }
+
   Future<int> importExcelWords() async {
     final picked = await FilePicker.platform.pickFiles(
       type: FileType.custom,
@@ -481,7 +518,7 @@ class Store extends ChangeNotifier {
         }
       }
     } else {
-      final workbook = excel_lib.Excel.decodeBytes(bytes);
+      final workbook = _decodeExcelCompat(Uint8List.fromList(bytes));
       if (workbook.tables.isEmpty) throw Exception('ملف Excel لا يحتوي على أوراق');
       final sheet = workbook.tables.values.first;
       if (sheet.rows.isEmpty) throw Exception('ورقة Excel فارغة');
