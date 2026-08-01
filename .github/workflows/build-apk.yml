@@ -53,8 +53,8 @@ jobs:
       - name: Add JSON Excel and CSV imports
         run: python3 tool/patch_import_files.py
 
-      - name: Repair damaged Excel styles
-        run: python3 tool/patch_excel_repair.py
+      - name: Restore robust Excel compatibility
+        run: python3 tool/patch_excel_compat.py
 
       - name: Separate card controls
         run: python3 tool/patch_card_controls.py
@@ -103,5 +103,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.0.2 with Excel repair
+          commit_message: Build qamoosi school APK v2.0.2 with restored Excel import
           file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.2.apk
