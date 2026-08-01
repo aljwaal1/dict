@@ -50,6 +50,12 @@ jobs:
       - name: Improve cards and pronunciation
         run: python3 tool/patch_pronunciation.py
 
+      - name: Add JSON Excel imports
+        run: python3 tool/patch_import_files.py
+
+      - name: Separate card controls
+        run: python3 tool/patch_card_controls.py
+
       - name: Configure Android
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
@@ -91,5 +97,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Improve pronunciation, cards and content management
+          commit_message: Add JSON Excel imports and separate card controls
           file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.0.apk DOWNLOAD_APK.md
