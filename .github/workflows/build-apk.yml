@@ -59,6 +59,9 @@ jobs:
       - name: Separate card controls
         run: python3 tool/patch_card_controls.py
 
+      - name: Fix visible version number
+        run: python3 tool/patch_version.py
+
       - name: Remove duplicate pronunciation helper
         run: |
           python3 <<'PY'
@@ -103,5 +106,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.0.2 with restored Excel import
+          commit_message: Build qamoosi school APK v2.0.2 with corrected visible version
           file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.0.2.apk
