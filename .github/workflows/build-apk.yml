@@ -79,7 +79,7 @@ jobs:
           PY
 
       - name: Apply final root fixes
-        run: python3 tool/patch_final_v210.py
+        run: python3 tool/run_final_v210.py
 
       - name: Configure Android and TTS discovery
         run: |
