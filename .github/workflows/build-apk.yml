@@ -58,6 +58,21 @@ jobs:
       - name: Separate card controls
         run: python3 tool/patch_card_controls.py
 
+      - name: Remove duplicate pronunciation helper
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('lib/main.dart')
+          text = p.read_text(encoding='utf-8')
+          pattern = re.compile(r'\n  Future<bool> testPronunciation\(\) async \{.*?\n  \}', re.S)
+          matches = list(pattern.finditer(text))
+          for m in reversed(matches[1:]):
+              text = text[:m.start()] + text[m.end():]
+          p.write_text(text, encoding='utf-8')
+          print(f'Removed {max(0, len(matches)-1)} duplicate helper(s)')
+          PY
+
       - name: Configure Android
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
