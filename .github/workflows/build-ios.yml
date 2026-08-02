@@ -1,0 +1,83 @@
+name: Build iPhone App
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+    paths:
+      - "lib/**"
+      - "assets/**"
+      - "pubspec.yaml"
+      - ".github/workflows/build-ios.yml"
+      - "tool/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: build-ios-main
+  cancel-in-progress: true
+
+jobs:
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Create iOS project
+        run: |
+          flutter create --platforms=ios --org com.explapp .
+          rm -rf test
+          flutter pub get
+
+      - name: Apply application patches
+        run: |
+          python3 tool/patch_content.py
+          python3 tool/patch_pronunciation.py
+          python3 tool/patch_import_files.py
+          python3 tool/patch_excel_compat.py
+          python3 tool/patch_card_controls.py
+          python3 tool/patch_version.py
+          python3 tool/run_final_v210.py
+          python3 tool/patch_v211_stats_audio.py
+
+      - name: Configure iPhone application
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName قاموسي المدرسي" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Set :CFBundleName قاموسي المدرسي" ios/Runner/Info.plist || true
+          /usr/libexec/PlistBuddy -c "Add :UIFileSharingEnabled bool true" ios/Runner/Info.plist || /usr/libexec/PlistBuddy -c "Set :UIFileSharingEnabled true" ios/Runner/Info.plist
+          /usr/libexec/PlistBuddy -c "Add :LSSupportsOpeningDocumentsInPlace bool true" ios/Runner/Info.plist || /usr/libexec/PlistBuddy -c "Set :LSSupportsOpeningDocumentsInPlace true" ios/Runner/Info.plist
+          sed -i '' 's/PRODUCT_BUNDLE_IDENTIFIER = com.explapp.qamoosiSchool;/PRODUCT_BUNDLE_IDENTIFIER = com.explapp.qamoosi_school;/g' ios/Runner.xcodeproj/project.pbxproj || true
+
+      - name: Analyze project
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build iPhone release without signing
+        run: flutter build ios --release --no-codesign
+
+      - name: Package unsigned IPA
+        run: |
+          rm -rf Payload ios-output
+          mkdir -p Payload ios-output
+          cp -R build/ios/iphoneos/Runner.app Payload/Runner.app
+          zip -qry ios-output/qamoosi-school-v2.1.2-unsigned.ipa Payload
+          ditto -c -k --sequesterRsrc --keepParent build/ios/iphoneos/Runner.app ios-output/qamoosi-school-v2.1.2-app.zip
+
+      - name: Upload iPhone artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: qamoosi-school-v2.1.2-ios
+          path: ios-output/*
+          if-no-files-found: error
+          retention-days: 30
