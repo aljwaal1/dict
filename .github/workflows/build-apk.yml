@@ -62,14 +62,9 @@ jobs:
             else
               python3 tool/patch_v220_sentences.py >> build_apk.log 2>&1
               PATCH_RC=$?
-              if [ "$PATCH_RC" -eq 0 ]; then
-                python3 tool/patch_v221_button_ux.py >> build_apk.log 2>&1
-                PATCH_RC=$?
-              fi
-              if [ "$PATCH_RC" -eq 0 ]; then
-                python3 tool/patch_v222_persistent_backup.py >> build_apk.log 2>&1
-                PATCH_RC=$?
-              fi
+              if [ "$PATCH_RC" -eq 0 ]; then python3 tool/patch_v221_button_ux.py >> build_apk.log 2>&1; PATCH_RC=$?; fi
+              if [ "$PATCH_RC" -eq 0 ]; then python3 tool/patch_v222_persistent_backup.py >> build_apk.log 2>&1; PATCH_RC=$?; fi
+              if [ "$PATCH_RC" -eq 0 ]; then python3 tool/patch_v223_sentence_recovery.py >> build_apk.log 2>&1; PATCH_RC=$?; fi
               if [ "$PATCH_RC" -ne 0 ]; then
                 echo "PATCH_FAILED:$PATCH_RC" > build_status.txt
               else
@@ -89,12 +84,8 @@ jobs:
                   else
                     mkdir -p apk
                     cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.2.apk
-                    if test -s apk/qamoosi-school-v2.2.2.apk; then
-                      echo "SUCCESS" > build_status.txt
-                    else
-                      echo "APK_MISSING" > build_status.txt
-                    fi
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.3.apk
+                    if test -s apk/qamoosi-school-v2.2.3.apk; then echo "SUCCESS" > build_status.txt; else echo "APK_MISSING" > build_status.txt; fi
                   fi
                 fi
               fi
@@ -109,11 +100,11 @@ jobs:
           exit 0
 
       - name: Upload APK artifact
-        if: hashFiles('apk/qamoosi-school-v2.2.2.apk') != ''
+        if: hashFiles('apk/qamoosi-school-v2.2.3.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.2.2-apk
-          path: apk/qamoosi-school-v2.2.2.apk
+          name: qamoosi-school-v2.2.3-apk
+          path: apk/qamoosi-school-v2.2.3.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -122,7 +113,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Record Android v2.2.2 persistent backup build result
+          commit_message: Record Android v2.2.3 sentence recovery build result
           file_pattern: lib/main.dart android apk build_status.txt
 
       - name: Verify success
