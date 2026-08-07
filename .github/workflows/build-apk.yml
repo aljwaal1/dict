@@ -42,7 +42,6 @@ jobs:
           cache: true
 
       - name: Prepare and build with captured logs
-        id: buildall
         shell: bash
         run: |
           set +e
@@ -65,15 +64,6 @@ jobs:
               else
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
                 sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
-                python3 <<'PY' >> build_apk.log 2>&1
-from pathlib import Path
-p = Path('android/app/src/main/AndroidManifest.xml')
-text = p.read_text(encoding='utf-8')
-if 'android.intent.action.TTS_SERVICE' not in text:
-    queries = '''\n    <queries>\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>\n'''
-    text = text.replace('<application', queries + '    <application', 1)
-p.write_text(text, encoding='utf-8')
-PY
                 flutter analyze --no-fatal-infos --no-fatal-warnings > build_analyze.log 2>&1
                 ANALYZE_RC=$?
                 if [ "$ANALYZE_RC" -ne 0 ]; then
@@ -115,8 +105,7 @@ PY
         with:
           branch: main
           commit_message: Record Android v2.2.0 build result
-          file_pattern: lib/main.dart android apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk build_status.txt build_analyze.log build_apk.log
+          file_pattern: lib/main.dart android apk build_status.txt build_analyze.log build_apk.log
 
       - name: Verify success
-        run: |
-          test "$(cat build_status.txt)" = "SUCCESS"
+        run: test "$(cat build_status.txt)" = "SUCCESS"
