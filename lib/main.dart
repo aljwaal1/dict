@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.2.0';
+const appVersion = '2.2.1';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,6 +71,45 @@ class QamoosiApp extends StatelessWidget {
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
           enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xffe3ecfb))),
           focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: seed, width: 1.6)),
+        ),
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            minimumSize: const Size(64, 52),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            minimumSize: const Size(64, 52),
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            side: const BorderSide(color: Color(0xffcbd9ee)),
+            textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+            textStyle: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
+            padding: const EdgeInsets.all(12),
+            tapTargetSize: MaterialTapTargetSize.padded,
+          ),
+        ),
+        navigationBarTheme: const NavigationBarThemeData(
+          height: 72,
+          labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
         ),
       ),
       home: const AppBootstrap(),
@@ -750,7 +789,7 @@ class _DictionaryPageState extends State<DictionaryPage> {
           padding: const EdgeInsets.all(16),
           child: TextField(
             onChanged: (v) => setState(() => widget.store.query = v),
-            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'ابحث بالعربي أو الإنجليزي', suffixIcon: widget.store.query.isEmpty ? null : IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => widget.store.query = ''))),
+            decoration: InputDecoration(prefixIcon: const Icon(Icons.search), hintText: 'ابحث بالعربي أو الإنجليزي', suffixIcon: widget.store.query.isEmpty ? null : IconButton(tooltip: 'مسح البحث', icon: const Icon(Icons.close), onPressed: () => setState(() => widget.store.query = ''))),
           ),
         ),
         Expanded(
@@ -764,7 +803,7 @@ class _DictionaryPageState extends State<DictionaryPage> {
                 contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
                 title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
                 subtitle: Text('${w.ar} • ${gradeName(w.grade)}'),
-                trailing: IconButton(icon: const Icon(Icons.volume_up_rounded), onPressed: () => widget.store.speak(w.en)),
+                trailing: IconButton(tooltip: 'نطق الكلمة', icon: const Icon(Icons.volume_up_rounded), onPressed: () => widget.store.speak(w.en)),
                 onTap: () => showWord(context, widget.store, w, source: list, initialIndex: i),
               ));
             },
@@ -1012,7 +1051,7 @@ class _QuizPageState extends State<QuizPage> {
     return Scaffold(
       appBar: AppBar(title: Text('السؤال ${i + 1} من ${questions.length}')),
       body: ListView(padding: const EdgeInsets.all(18), children: [
-        Card(child: Padding(padding: const EdgeInsets.all(28), child: Column(children: [Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w900)), IconButton(icon: const Icon(Icons.volume_up), onPressed: () => widget.store.speak(w.en))]))),
+        Card(child: Padding(padding: const EdgeInsets.all(28), child: Column(children: [Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w900)), const SizedBox(height: 14), FilledButton.tonalIcon(onPressed: () => widget.store.speak(w.en), icon: const Icon(Icons.volume_up_rounded), label: const Text('اسمع الكلمة'))]))),
         ...options.map((o) => Card(child: ListTile(title: Text(o), onTap: () async { final ok = o == w.ar; await widget.store.answer(w, ok); if (ok) score++; if (mounted) setState(() => i++); }))),
       ]),
     );
@@ -1191,7 +1230,7 @@ class SettingsPage extends StatelessWidget {
     final replace = await showDialog<bool>(context: context, builder: (_) => AlertDialog(
       title: const Text('طريقة الاستعادة'),
       content: const Text('الدمج يحافظ على البيانات الحالية ويضيف بيانات النسخة. الاستبدال يمسح بيانات التطبيق الحالية أولاً.'),
-      actions: [TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')), OutlinedButton(onPressed: () => Navigator.pop(context, false), child: const Text('دمج')), FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('استبدال'))],
+      actions: [TextButton(onPressed: () => Navigator.pop(context, null), child: const Text('إلغاء')), FilledButton(onPressed: () => Navigator.pop(context, false), child: const Text('دمج وحفظ الحالي')), FilledButton(style: FilledButton.styleFrom(backgroundColor: Theme.of(context).colorScheme.error, foregroundColor: Theme.of(context).colorScheme.onError), onPressed: () => Navigator.pop(context, true), child: const Text('استبدال وحذف الحالي'))],
     ));
     if (replace == null) return;
     try { await store.restoreBackup(replace: replace); if (context.mounted) snack(context, 'تمت استعادة النسخة بنجاح'); } catch (e) { if (context.mounted) snack(context, 'فشلت الاستعادة: $e'); }
