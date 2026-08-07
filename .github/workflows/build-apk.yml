@@ -7,14 +7,12 @@ on:
     paths-ignore:
       - "apk/**"
       - "DOWNLOAD_APK.md"
-  pull_request:
-    branches: ["main"]
 
 permissions:
   contents: write
 
 concurrency:
-  group: build-apk-${{ github.ref }}
+  group: build-apk-main
   cancel-in-progress: true
 
 jobs:
@@ -40,56 +38,17 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Prepare Android project
+      - name: Create Android project files
         run: |
           flutter create --platforms=android --org com.explapp .
           rm -rf test
           flutter pub get
 
-      - name: Restore content features
-        run: python3 tool/patch_content.py
-
-      - name: Improve pronunciation
-        run: python3 tool/patch_pronunciation.py
-
-      - name: Add JSON Excel and CSV imports
-        run: python3 tool/patch_import_files.py
-
-      - name: Restore robust Excel compatibility
-        run: python3 tool/patch_excel_compat.py
-
-      - name: Separate card controls
-        run: python3 tool/patch_card_controls.py
-
-      - name: Fix visible version number
-        run: python3 tool/patch_version.py
-
-      - name: Remove duplicate pronunciation helper
-        run: |
-          python3 <<'PY'
-          from pathlib import Path
-          import re
-          p = Path('lib/main.dart')
-          text = p.read_text(encoding='utf-8')
-          pattern = re.compile(r'\n  Future<bool> testPronunciation\(\) async \{.*?\n  \}', re.S)
-          matches = list(pattern.finditer(text))
-          for m in reversed(matches[1:]):
-              text = text[:m.start()] + text[m.end():]
-          p.write_text(text, encoding='utf-8')
-          PY
-
-      - name: Apply final root fixes
-        run: python3 tool/run_final_v210.py
-
-      - name: Refresh imported statistics and audio routing
-        run: python3 tool/patch_v211_stats_audio.py
-
-      - name: Fix imported sentences and sentence pronunciation
+      - name: Apply v2.2.0 sentence import and UI fix
         run: python3 tool/patch_v220_sentences.py
 
-      - name: Configure Android and TTS discovery
+      - name: Configure Android package and TTS
         run: |
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
           sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
           sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
           python3 <<'PY'
@@ -113,6 +72,7 @@ jobs:
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.0.apk
+          test -s apk/qamoosi-school-v2.2.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -122,10 +82,9 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Commit source and APK to main
-        if: github.event_name == 'push'
+      - name: Commit built APK to main
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.2.0 with English sentence support
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk
+          commit_message: Build verified qamoosi school APK v2.2.0
+          file_pattern: lib/main.dart android apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk
