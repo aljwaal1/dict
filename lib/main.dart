@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.1.0';
+const appVersion = '2.2.0';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -93,8 +93,8 @@ class WordItem {
         grade: normalizeGrade('${j['grade'] ?? ''}'),
         en: '${j['word_en'] ?? j['word'] ?? ''}'.trim(),
         ar: '${j['meaning_ar'] ?? j['meaning'] ?? ''}'.trim(),
-        exampleEn: '${j['example_en'] ?? j['example'] ?? ''}'.trim(),
-        exampleAr: '${j['example_ar'] ?? j['translation'] ?? ''}'.trim(),
+        exampleEn: '${j['example_en'] ?? j['sentence_en'] ?? j['example'] ?? j['sentence'] ?? ''}'.trim(),
+        exampleAr: '${j['example_ar'] ?? j['sentence_ar'] ?? j['translation'] ?? j['sentence_translation'] ?? ''}'.trim(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -451,8 +451,8 @@ class Store extends ChangeNotifier {
       grade: grade,
       en: en,
       ar: ar,
-      exampleEn: _valueByHeaders(row, ['example_en', 'sentence_en', 'example', 'الجملة_الإنجليزية', 'مثال_إنجليزي']),
-      exampleAr: _valueByHeaders(row, ['example_ar', 'sentence_ar', 'translation', 'ترجمة_الجملة', 'مثال_عربي']),
+      exampleEn: _valueByHeaders(row, ['example_en', 'sentence_en', 'example', 'sentence', 'الجملة_الإنجليزية', 'الجملة_الانجليزية', 'جملة_مثال', 'مثال_من_الكتاب', 'مثال_إنجليزي']),
+      exampleAr: _valueByHeaders(row, ['example_ar', 'sentence_ar', 'translation', 'sentence_translation', 'ترجمة_الجملة', 'ترجمة_المثال', 'ترجمة_المثال_إلى_العربية', 'مثال_عربي']),
     );
   }
 
@@ -937,11 +937,21 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(18)),
                             child: Column(children: [
-                              if (word.exampleEn.isNotEmpty) Row(children: [
-                                Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700))),
-                                IconButton(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded)),
-                              ]),
-                              if (word.exampleAr.isNotEmpty) Text(word.exampleAr, textAlign: TextAlign.center),
+                              if (word.exampleEn.isNotEmpty) ...[
+                                const Text('الجملة الإنجليزية', style: TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 8),
+                                Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                                const SizedBox(height: 8),
+                                FilledButton.tonalIcon(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded), label: const Text('لفظ الجملة')),
+                              ],
+                              if (word.exampleAr.isNotEmpty) ...[
+                                const SizedBox(height: 14),
+                                const Divider(),
+                                const SizedBox(height: 8),
+                                const Text('ترجمة الجملة', style: TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 6),
+                                Text(word.exampleAr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
+                              ],
                             ]),
                           ),
                         ],
@@ -1340,8 +1350,20 @@ class _WordCardPageState extends State<WordCardPage> {
                   SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: () => setState(() => showMeaning = !showMeaning), icon: const Icon(Icons.translate_rounded), label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'))),
                   if (showMeaning) Container(width: double.infinity, margin: const EdgeInsets.only(top: 20), padding: const EdgeInsets.all(20), decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(20)), child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 31, fontWeight: FontWeight.w900))),
                   if (showExample) Container(width: double.infinity, margin: const EdgeInsets.only(top: 20), padding: const EdgeInsets.all(18), decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(20)), child: Column(children: [
-                    if (word.exampleEn.isNotEmpty) Row(children: [Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700))), IconButton.filledTonal(onPressed: () => pronounce(word.exampleEn), icon: const Icon(Icons.volume_up_rounded))]),
-                    if (word.exampleAr.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text(word.exampleAr, textAlign: TextAlign.center)),
+                    if (word.exampleEn.isNotEmpty) ...[
+                      const Text('الجملة الإنجليزية', style: TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 8),
+                      Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                      const SizedBox(height: 10),
+                      SizedBox(width: double.infinity, child: FilledButton.tonalIcon(onPressed: () => pronounce(word.exampleEn), icon: const Icon(Icons.volume_up_rounded), label: const Text('لفظ الجملة'))),
+                    ],
+                    if (word.exampleAr.isNotEmpty) ...[
+                      const SizedBox(height: 14),
+                      const Divider(),
+                      const Text('ترجمة الجملة', style: TextStyle(fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text(word.exampleAr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
+                    ],
                   ])),
                 ]),
               )),
