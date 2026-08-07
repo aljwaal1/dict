@@ -89,7 +89,12 @@ jobs:
               fi
             fi
           fi
+          echo "===== BUILD STATUS ====="
           cat build_status.txt
+          echo "===== ANALYZE LOG ====="
+          cat build_analyze.log 2>/dev/null || true
+          echo "===== BUILD LOG (last 250 lines) ====="
+          tail -n 250 build_apk.log 2>/dev/null || true
           exit 0
 
       - name: Upload APK artifact
@@ -107,7 +112,7 @@ jobs:
         with:
           branch: main
           commit_message: Record Android v2.2.0 build result
-          file_pattern: lib/main.dart android apk build_status.txt build_analyze.log build_apk.log
+          file_pattern: lib/main.dart android apk build_status.txt
 
       - name: Verify success
         run: test "$(cat build_status.txt)" = "SUCCESS"
