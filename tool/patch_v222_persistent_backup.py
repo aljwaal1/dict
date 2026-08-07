@@ -6,17 +6,22 @@ text = p.read_text(encoding='utf-8')
 text = text.replace("const appVersion = '2.2.0';", "const appVersion = '2.2.2';")
 text = text.replace("const appVersion = '2.2.1';", "const appVersion = '2.2.2';")
 
-text = text.replace(
-"  bool ttsReady = false;\n",
-"  bool ttsReady = false;\n  bool freshInstall = false;\n",
-1,
-)
+# This workflow can run repeatedly on a source tree that already contains the
+# backup feature. Never add the field twice.
+if 'bool freshInstall = false;' not in text:
+    text = text.replace(
+        "  bool ttsReady = false;\n",
+        "  bool ttsReady = false;\n  bool freshInstall = false;\n",
+        1,
+    )
 
-text = text.replace(
-"    prefs = await SharedPreferences.getInstance();\n    sound = prefs.getBool('sound') ?? true;",
-"    prefs = await SharedPreferences.getInstance();\n    freshInstall = prefs.getBool('installation_initialized') != true;\n    await prefs.setBool('installation_initialized', true);\n    sound = prefs.getBool('sound') ?? true;",
-1,
-)
+# Add first-install tracking only once.
+if "installation_initialized" not in text:
+    text = text.replace(
+        "    prefs = await SharedPreferences.getInstance();\n    sound = prefs.getBool('sound') ?? true;",
+        "    prefs = await SharedPreferences.getInstance();\n    freshInstall = prefs.getBool('installation_initialized') != true;\n    await prefs.setBool('installation_initialized', true);\n    sound = prefs.getBool('sound') ?? true;",
+        1,
+    )
 
 share_anchor = """  Future<void> shareBackup() async {
     final file = await createBackupFile();
@@ -123,4 +128,4 @@ if "title: 'حفظ نسخة دائمة على الجهاز'" not in text:
     text = text.replace(settings_anchor, settings_new, 1)
 
 p.write_text(text, encoding='utf-8')
-print('Applied v2.2.2 persistent backup/reinstall recovery patch')
+print('Applied v2.2.2 persistent backup/reinstall recovery patch safely')
