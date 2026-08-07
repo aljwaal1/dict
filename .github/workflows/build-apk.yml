@@ -66,12 +66,24 @@ jobs:
                 python3 tool/patch_v221_button_ux.py >> build_apk.log 2>&1
                 PATCH_RC=$?
               fi
+              if [ "$PATCH_RC" -eq 0 ]; then
+                python3 tool/patch_v222_persistent_backup.py >> build_apk.log 2>&1
+                PATCH_RC=$?
+              fi
               if [ "$PATCH_RC" -ne 0 ]; then
                 echo "PATCH_FAILED:$PATCH_RC" > build_status.txt
               else
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
                 sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
+                python3 <<'PY' >> build_apk.log 2>&1
+from pathlib import Path
+p = Path('android/app/src/main/AndroidManifest.xml')
+text = p.read_text(encoding='utf-8')
+if 'android:allowBackup=' not in text:
+    text = text.replace('<application', '<application\n        android:allowBackup="true"', 1)
+p.write_text(text, encoding='utf-8')
+PY
                 flutter analyze --no-fatal-infos --no-fatal-warnings > build_analyze.log 2>&1
                 ANALYZE_RC=$?
                 if [ "$ANALYZE_RC" -ne 0 ]; then
@@ -84,8 +96,8 @@ jobs:
                   else
                     mkdir -p apk
                     cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.1.apk
-                    if test -s apk/qamoosi-school-v2.2.1.apk; then
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.2.apk
+                    if test -s apk/qamoosi-school-v2.2.2.apk; then
                       echo "SUCCESS" > build_status.txt
                     else
                       echo "APK_MISSING" > build_status.txt
@@ -104,11 +116,11 @@ jobs:
           exit 0
 
       - name: Upload APK artifact
-        if: hashFiles('apk/qamoosi-school-v2.2.1.apk') != ''
+        if: hashFiles('apk/qamoosi-school-v2.2.2.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.2.1-apk
-          path: apk/qamoosi-school-v2.2.1.apk
+          name: qamoosi-school-v2.2.2-apk
+          path: apk/qamoosi-school-v2.2.2.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -117,7 +129,7 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Record Android v2.2.1 button UX build result
+          commit_message: Record Android v2.2.2 persistent backup build result
           file_pattern: lib/main.dart android apk build_status.txt
 
       - name: Verify success
