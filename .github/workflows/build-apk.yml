@@ -84,6 +84,9 @@ jobs:
       - name: Refresh imported statistics and audio routing
         run: python3 tool/patch_v211_stats_audio.py
 
+      - name: Fix imported sentences and sentence pronunciation
+        run: python3 tool/patch_v220_sentences.py
+
       - name: Configure Android and TTS discovery
         run: |
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
@@ -109,13 +112,13 @@ jobs:
         run: |
           mkdir -p apk
           cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.1.1.apk
+          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.0.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-school-v2.1.1-apk
-          path: apk/qamoosi-school-v2.1.1.apk
+          name: qamoosi-school-v2.2.0-apk
+          path: apk/qamoosi-school-v2.2.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -124,5 +127,5 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build qamoosi school APK v2.1.1 with live statistics refresh
-          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.1.1.apk
+          commit_message: Build qamoosi school APK v2.2.0 with English sentence support
+          file_pattern: lib/main.dart apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk
