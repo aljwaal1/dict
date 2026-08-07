@@ -16,7 +16,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.2.2';
+const appVersion = '2.2.3';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -132,8 +132,8 @@ class WordItem {
         grade: normalizeGrade('${j['grade'] ?? ''}'),
         en: '${j['word_en'] ?? j['word'] ?? ''}'.trim(),
         ar: '${j['meaning_ar'] ?? j['meaning'] ?? ''}'.trim(),
-        exampleEn: '${j['example_en'] ?? j['sentence_en'] ?? j['example'] ?? j['sentence'] ?? ''}'.trim(),
-        exampleAr: '${j['example_ar'] ?? j['sentence_ar'] ?? j['translation'] ?? j['sentence_translation'] ?? ''}'.trim(),
+        exampleEn: '${j['example_en'] ?? j['sentence_en'] ?? j['exampleEnglish'] ?? j['example_english'] ?? j['sentenceEnglish'] ?? j['sentence_english'] ?? j['exampleSentence'] ?? j['example_sentence'] ?? j['book_example'] ?? j['example'] ?? j['sentence'] ?? j['جملة مثال'] ?? j['مثال من الكتاب'] ?? j['الجملة الإنجليزية'] ?? ''}'.trim(),
+        exampleAr: '${j['example_ar'] ?? j['sentence_ar'] ?? j['exampleArabic'] ?? j['example_arabic'] ?? j['sentenceArabic'] ?? j['sentence_arabic'] ?? j['sentenceTranslation'] ?? j['sentence_translation'] ?? j['translation'] ?? j['ترجمة الجملة'] ?? j['ترجمة المثال'] ?? j['ترجمة المثال إلى العربية'] ?? ''}'.trim(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -157,6 +157,7 @@ class Profile {
 class Store extends ChangeNotifier {
   final tts = FlutterTts();
   bool ttsReady = false;
+  bool freshInstall = false;
   bool freshInstall = false;
   String ttsLanguage = 'en-US';
   late SharedPreferences prefs;
@@ -493,7 +494,11 @@ class Store extends ChangeNotifier {
   String _normalizeHeader(String value) => value
       .trim()
       .toLowerCase()
-      .replaceAll(' ', '_')
+      .replaceAll(RegExp(r'[ـ:：]'), '')
+      .replaceAll(RegExp(r'[أإآ]'), 'ا')
+      .replaceAll('ة', 'ه')
+      .replaceAll('ى', 'ي')
+      .replaceAll(RegExp(r'\s+'), '_')
       .replaceAll('-', '_');
 
   String _valueByHeaders(Map<String, String> row, List<String> names) {
@@ -517,8 +522,8 @@ class Store extends ChangeNotifier {
       grade: grade,
       en: en,
       ar: ar,
-      exampleEn: _valueByHeaders(row, ['example_en', 'sentence_en', 'example', 'sentence', 'الجملة_الإنجليزية', 'الجملة_الانجليزية', 'جملة_مثال', 'مثال_من_الكتاب', 'مثال_إنجليزي']),
-      exampleAr: _valueByHeaders(row, ['example_ar', 'sentence_ar', 'translation', 'sentence_translation', 'ترجمة_الجملة', 'ترجمة_المثال', 'ترجمة_المثال_إلى_العربية', 'مثال_عربي']),
+      exampleEn: _valueByHeaders(row, ['example_en', 'sentence_en', 'exampleenglish', 'example_english', 'sentenceenglish', 'sentence_english', 'examplesentence', 'example_sentence', 'book_example', 'example', 'sentence', 'الجمله_الانجليزيه', 'جمله_مثال', 'مثال_جمله', 'مثال_من_الكتاب', 'مثال_انجليزي']),
+      exampleAr: _valueByHeaders(row, ['example_ar', 'sentence_ar', 'examplearabic', 'example_arabic', 'sentencearabic', 'sentence_arabic', 'translation', 'sentencetranslation', 'sentence_translation', 'ترجمه_الجمله', 'ترجمه_المثال', 'ترجمه_المثال_الي_العربيه', 'مثال_عربي']),
     );
   }
 
@@ -1041,6 +1046,11 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
                                 Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
                                 const SizedBox(height: 8),
                                 FilledButton.tonalIcon(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded), label: const Text('لفظ الجملة')),
+                              ],
+                              if (word.exampleEn.isEmpty && word.exampleAr.isNotEmpty) ...[
+                                const Text('الجملة الإنجليزية غير محفوظة لهذه الكلمة', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800)),
+                                const SizedBox(height: 8),
+                                const Text('أعد استيراد ملف Excel نفسه مرة واحدة لتحديث الجملة الإنجليزية دون تكرار الكلمة.', textAlign: TextAlign.center),
                               ],
                               if (word.exampleAr.isNotEmpty) ...[
                                 const SizedBox(height: 14),
