@@ -158,7 +158,6 @@ class Store extends ChangeNotifier {
   final tts = FlutterTts();
   bool ttsReady = false;
   bool freshInstall = false;
-  bool freshInstall = false;
   String ttsLanguage = 'en-US';
   late SharedPreferences prefs;
   List<WordItem> words = [];
