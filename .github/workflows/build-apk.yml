@@ -7,6 +7,9 @@ on:
     paths-ignore:
       - "apk/**"
       - "DOWNLOAD_APK.md"
+      - "build_status.txt"
+      - "build_analyze.log"
+      - "build_apk.log"
 
 permissions:
   contents: write
@@ -38,43 +41,67 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Create Android project files
+      - name: Prepare and build with captured logs
+        id: buildall
+        shell: bash
         run: |
-          flutter create --platforms=android --org com.explapp .
-          rm -rf test
-          flutter pub get
-
-      - name: Apply v2.2.0 sentence import and UI fix
-        run: python3 tool/patch_v220_sentences.py
-
-      - name: Configure Android package and TTS
-        run: |
-          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
-          sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
-          python3 <<'PY'
-          from pathlib import Path
-          p = Path('android/app/src/main/AndroidManifest.xml')
-          text = p.read_text(encoding='utf-8')
-          if 'android.intent.action.TTS_SERVICE' not in text:
-              queries = '''\n    <queries>\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>\n'''
-              text = text.replace('<application', queries + '    <application', 1)
-          p.write_text(text, encoding='utf-8')
-          PY
-
-      - name: Analyze project
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings
-
-      - name: Build release APK
-        run: flutter build apk --release
-
-      - name: Prepare downloadable APK
-        run: |
-          mkdir -p apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
-          cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.0.apk
-          test -s apk/qamoosi-school-v2.2.0.apk
+          set +e
+          echo "STARTED" > build_status.txt
+          flutter create --platforms=android --org com.explapp . > build_apk.log 2>&1
+          CREATE_RC=$?
+          if [ "$CREATE_RC" -ne 0 ]; then
+            echo "CREATE_FAILED:$CREATE_RC" > build_status.txt
+          else
+            rm -rf test
+            flutter pub get >> build_apk.log 2>&1
+            PUB_RC=$?
+            if [ "$PUB_RC" -ne 0 ]; then
+              echo "PUBGET_FAILED:$PUB_RC" > build_status.txt
+            else
+              python3 tool/patch_v220_sentences.py >> build_apk.log 2>&1
+              PATCH_RC=$?
+              if [ "$PATCH_RC" -ne 0 ]; then
+                echo "PATCH_FAILED:$PATCH_RC" > build_status.txt
+              else
+                sed -i 's/applicationId = ".*"/applicationId = "com.explapp.qamoosi_school"/' android/app/build.gradle.kts || true
+                sed -i 's/android:label="[^"]*"/android:label="قاموسي المدرسي"/' android/app/src/main/AndroidManifest.xml || true
+                python3 <<'PY' >> build_apk.log 2>&1
+from pathlib import Path
+p = Path('android/app/src/main/AndroidManifest.xml')
+text = p.read_text(encoding='utf-8')
+if 'android.intent.action.TTS_SERVICE' not in text:
+    queries = '''\n    <queries>\n        <intent>\n            <action android:name="android.intent.action.TTS_SERVICE" />\n        </intent>\n    </queries>\n'''
+    text = text.replace('<application', queries + '    <application', 1)
+p.write_text(text, encoding='utf-8')
+PY
+                flutter analyze --no-fatal-infos --no-fatal-warnings > build_analyze.log 2>&1
+                ANALYZE_RC=$?
+                if [ "$ANALYZE_RC" -ne 0 ]; then
+                  echo "ANALYZE_FAILED:$ANALYZE_RC" > build_status.txt
+                else
+                  flutter build apk --release >> build_apk.log 2>&1
+                  BUILD_RC=$?
+                  if [ "$BUILD_RC" -ne 0 ]; then
+                    echo "BUILD_FAILED:$BUILD_RC" > build_status.txt
+                  else
+                    mkdir -p apk
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school.apk
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/qamoosi-school-v2.2.0.apk
+                    if test -s apk/qamoosi-school-v2.2.0.apk; then
+                      echo "SUCCESS" > build_status.txt
+                    else
+                      echo "APK_MISSING" > build_status.txt
+                    fi
+                  fi
+                fi
+              fi
+            fi
+          fi
+          cat build_status.txt
+          exit 0
 
       - name: Upload APK artifact
+        if: hashFiles('apk/qamoosi-school-v2.2.0.apk') != ''
         uses: actions/upload-artifact@v4
         with:
           name: qamoosi-school-v2.2.0-apk
@@ -82,9 +109,14 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-      - name: Commit built APK to main
+      - name: Commit build result to main
+        if: always()
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           branch: main
-          commit_message: Build verified qamoosi school APK v2.2.0
-          file_pattern: lib/main.dart android apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk
+          commit_message: Record Android v2.2.0 build result
+          file_pattern: lib/main.dart android apk/qamoosi-school.apk apk/qamoosi-school-v2.2.0.apk build_status.txt build_analyze.log build_apk.log
+
+      - name: Verify success
+        run: |
+          test "$(cat build_status.txt)" = "SUCCESS"
