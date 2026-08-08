@@ -1,0 +1,1 @@
+Final v2.1.0 verification build retry 2 for TTS, flashcards, word navigation, and raw XLSX import.
