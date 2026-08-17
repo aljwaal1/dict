@@ -1,7 +1,7 @@
 name: qamoosi_school
-description: قاموسي المدرسي - قاموس تعليمي عربي إنجليزي للمنهاج الأردني.
+description: القاموس المدرسي الأردني - قاموس تعليمي عربي إنجليزي للمنهاج الأردني.
 publish_to: 'none'
-version: 2.2.2+13
+version: 3.0.0+20
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
