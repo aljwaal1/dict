@@ -1,0 +1,50 @@
+{
+  "name_ar": "القاموس المدرسي الأردني",
+  "country": "Jordan",
+  "source": "National Center for Curriculum Development / Ministry of Education",
+  "schema_version": 1,
+  "grades": [
+    {
+      "grade": "7",
+      "subject": "English",
+      "semester": 2,
+      "book_type": "Pupil's Book",
+      "units": [
+        {
+          "unit": 5,
+          "title_en": "Adventure sports",
+          "title_ar": "رياضات المغامرة",
+          "lessons": [1, 2, 3, 4]
+        },
+        {
+          "unit": 6,
+          "title_en": "Spend or save?",
+          "title_ar": "تنفق أم تدخر؟",
+          "lessons": [1, 2, 3, 4]
+        },
+        {
+          "unit": 7,
+          "title_en": "Let's talk!",
+          "title_ar": "لنتحدث!",
+          "lessons": [1, 2, 3, 4]
+        },
+        {
+          "unit": 8,
+          "title_en": "Inventions",
+          "title_ar": "الاختراعات",
+          "lessons": [1, 2, 3, 4]
+        }
+      ],
+      "supplementary_sections": [
+        "Dana's Learning Club - Language booster 3",
+        "Think like a scientist! How can we talk about chronology?",
+        "Dana's Learning Club - Language booster 4",
+        "Think like a scientist! Don't stop the music!",
+        "Festivals",
+        "Grammar reference",
+        "How to write...",
+        "English in action reference"
+      ]
+    }
+  ]
+}
