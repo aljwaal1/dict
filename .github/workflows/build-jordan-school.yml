@@ -8,6 +8,8 @@ on:
       - "jordan_build_status.txt"
       - "jordan_build_analyze.log"
       - "jordan_build_apk.log"
+  pull_request:
+    branches: ["jordan-school-dictionary"]
   workflow_dispatch:
 
 permissions:
