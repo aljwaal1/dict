@@ -1,0 +1,109 @@
+name: Build Jordan School Dictionary
+
+on:
+  push:
+    branches: ["jordan-school-dictionary"]
+    paths-ignore:
+      - "apk/jordan-school-dictionary*.apk"
+      - "jordan_build_status.txt"
+      - "jordan_build_analyze.log"
+      - "jordan_build_apk.log"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: jordan-school-dictionary-build
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout Jordan branch
+        uses: actions/checkout@v4
+        with:
+          ref: jordan-school-dictionary
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply redesign and build
+        shell: bash
+        run: |
+          set +e
+          echo "STARTED" > jordan_build_status.txt
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" >> jordan_build_apk.log 2>&1 || true
+          flutter create --platforms=android --org com.explapp . >> jordan_build_apk.log 2>&1
+          if [ $? -ne 0 ]; then
+            echo "CREATE_FAILED" > jordan_build_status.txt
+          else
+            rm -rf test
+            flutter pub get >> jordan_build_apk.log 2>&1
+            if [ $? -ne 0 ]; then
+              echo "PUBGET_FAILED" > jordan_build_status.txt
+            else
+              python3 tool/patch_jordan_v300_redesign.py >> jordan_build_apk.log 2>&1
+              if [ $? -ne 0 ]; then
+                echo "PATCH_FAILED" > jordan_build_status.txt
+              else
+                sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
+                sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
+                sed -i 's/android:label="[^"]*"/android:label="القاموس المدرسي الأردني"/' android/app/src/main/AndroidManifest.xml || true
+                flutter analyze --no-fatal-infos --no-fatal-warnings > jordan_build_analyze.log 2>&1
+                if [ $? -ne 0 ]; then
+                  echo "ANALYZE_FAILED" > jordan_build_status.txt
+                else
+                  flutter build apk --release >> jordan_build_apk.log 2>&1
+                  if [ $? -ne 0 ]; then
+                    echo "BUILD_FAILED" > jordan_build_status.txt
+                  else
+                    mkdir -p apk
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary.apk
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.0.0.apk
+                    if test -s apk/jordan-school-dictionary-v3.0.0.apk; then
+                      echo "SUCCESS" > jordan_build_status.txt
+                    else
+                      echo "APK_MISSING" > jordan_build_status.txt
+                    fi
+                  fi
+                fi
+              fi
+            fi
+          fi
+          cat jordan_build_status.txt
+          tail -n 200 jordan_build_analyze.log 2>/dev/null || true
+          tail -n 250 jordan_build_apk.log 2>/dev/null || true
+          exit 0
+
+      - name: Upload Jordan APK
+        if: hashFiles('apk/jordan-school-dictionary-v3.0.0.apk') != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: jordan-school-dictionary-v3.0.0-apk
+          path: apk/jordan-school-dictionary-v3.0.0.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Commit generated Jordan app and build result
+        if: always()
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          branch: jordan-school-dictionary
+          commit_message: Record Jordan School Dictionary v3.0.0 build
+          file_pattern: lib/main.dart android apk jordan_build_status.txt jordan_build_analyze.log jordan_build_apk.log
+
+      - name: Verify success
+        run: test "$(cat jordan_build_status.txt)" = "SUCCESS"
