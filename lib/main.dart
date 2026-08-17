@@ -11,12 +11,13 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:read_pdf_text/read_pdf_text.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
-const grades = ['KG', '1', '2', '3', '4', '5', '6', '7', '8'];
-const appVersion = '2.2.3';
+const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+const appVersion = '3.1.0';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,7 +37,7 @@ class QamoosiApp extends StatelessWidget {
     final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'قاموسي المدرسي',
+      title: 'القاموس المدرسي الأردني',
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
@@ -124,8 +125,23 @@ class WordItem {
   final String ar;
   final String exampleEn;
   final String exampleAr;
+  final String semester;
+  final String unit;
+  final String lesson;
+  final String sourcePage;
 
-  const WordItem({required this.id, required this.grade, required this.en, required this.ar, this.exampleEn = '', this.exampleAr = ''});
+  const WordItem({
+    required this.id,
+    required this.grade,
+    required this.en,
+    required this.ar,
+    this.exampleEn = '',
+    this.exampleAr = '',
+    this.semester = '',
+    this.unit = '',
+    this.lesson = '',
+    this.sourcePage = '',
+  });
 
   factory WordItem.fromJson(Map<String, dynamic> j) => WordItem(
         id: int.tryParse('${j['id'] ?? 0}') ?? 0,
@@ -134,6 +150,10 @@ class WordItem {
         ar: '${j['meaning_ar'] ?? j['meaning'] ?? ''}'.trim(),
         exampleEn: '${j['example_en'] ?? j['sentence_en'] ?? j['exampleEnglish'] ?? j['example_english'] ?? j['sentenceEnglish'] ?? j['sentence_english'] ?? j['exampleSentence'] ?? j['example_sentence'] ?? j['book_example'] ?? j['example'] ?? j['sentence'] ?? j['جملة مثال'] ?? j['مثال من الكتاب'] ?? j['الجملة الإنجليزية'] ?? ''}'.trim(),
         exampleAr: '${j['example_ar'] ?? j['sentence_ar'] ?? j['exampleArabic'] ?? j['example_arabic'] ?? j['sentenceArabic'] ?? j['sentence_arabic'] ?? j['sentenceTranslation'] ?? j['sentence_translation'] ?? j['translation'] ?? j['ترجمة الجملة'] ?? j['ترجمة المثال'] ?? j['ترجمة المثال إلى العربية'] ?? ''}'.trim(),
+        semester: '${j['semester'] ?? j['term'] ?? j['الفصل الدراسي'] ?? j['الفصل_الدراسي'] ?? ''}'.trim(),
+        unit: '${j['unit'] ?? j['الوحدة'] ?? ''}'.trim(),
+        lesson: '${j['lesson'] ?? j['الدرس'] ?? ''}'.trim(),
+        sourcePage: '${j['page'] ?? j['source_page'] ?? j['رقم الصفحة'] ?? j['الصفحة'] ?? ''}'.trim(),
       );
 
   Map<String, dynamic> toJson() => {
@@ -143,6 +163,10 @@ class WordItem {
         'meaning_ar': ar,
         'example_en': exampleEn,
         'example_ar': exampleAr,
+        'semester': semester,
+        'unit': unit,
+        'lesson': lesson,
+        'source_page': sourcePage,
       };
 }
 
@@ -229,6 +253,36 @@ class Store extends ChangeNotifier {
   }
 
   List<WordItem> byGrade(String g) => words.where((w) => w.grade == g).toList(growable: false);
+  List<WordItem> byCurriculum({required String grade, String semester = '', String unit = '', String lesson = ''}) => words.where((w) {
+    if (w.grade != grade) return false;
+    if (semester.isNotEmpty && w.semester != semester) return false;
+    if (unit.isNotEmpty && w.unit != unit) return false;
+    if (lesson.isNotEmpty && w.lesson != lesson) return false;
+    return true;
+  }).toList(growable: false);
+
+  List<WordItem> smartSearch(String value) {
+    final q = value.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    int rank(WordItem w) {
+      final en = w.en.toLowerCase();
+      final ar = w.ar.toLowerCase();
+      final exEn = w.exampleEn.toLowerCase();
+      final exAr = w.exampleAr.toLowerCase();
+      if (en == q || ar == q) return 0;
+      if (en.startsWith(q) || ar.startsWith(q)) return 1;
+      if (en.contains(q) || ar.contains(q)) return 2;
+      if (exEn.contains(q) || exAr.contains(q)) return 3;
+      return 99;
+    }
+    final result = words.where((w) => rank(w) < 99).toList(growable: false);
+    result.sort((a, b) {
+      final r = rank(a).compareTo(rank(b));
+      if (r != 0) return r;
+      return a.en.toLowerCase().compareTo(b.en.toLowerCase());
+    });
+    return result;
+  }
   int masteredGrade(String g) => byGrade(g).where((w) => mastered.contains('${w.id}')).length;
   int lastIndex(String g) => byGrade(g).isEmpty ? 0 : (lastIndexByGrade[g] ?? 0).clamp(0, byGrade(g).length - 1);
   List<WordItem> get filteredWords {
@@ -357,7 +411,7 @@ class Store extends ChangeNotifier {
 
   Future<File> createBackupFile() async {
     final payload = {
-      'app': 'قاموسي المدرسي',
+      'app': 'القاموس المدرسي الأردني',
       'format': 'qamoosi-backup',
       'formatVersion': 2,
       'appVersion': appVersion,
@@ -379,7 +433,7 @@ class Store extends ChangeNotifier {
 
   Future<bool> savePersistentBackupToDevice() async {
     final payload = {
-      'app': 'قاموسي المدرسي',
+      'app': 'القاموس المدرسي الأردني',
       'format': 'qamoosi-backup',
       'formatVersion': 2,
       'appVersion': appVersion,
@@ -437,11 +491,11 @@ class Store extends ChangeNotifier {
         .where((w) => w.en.trim().isNotEmpty && w.ar.trim().isNotEmpty && grades.contains(w.grade))
         .toList();
     final index = <String, WordItem>{
-      for (final w in words) '${w.grade}|${w.en.trim().toLowerCase()}': w,
+      for (final w in words) '${w.grade}|${w.semester}|${w.unit}|${w.lesson}|${w.en.trim().toLowerCase()}': w,
     };
     var added = 0;
     for (final word in valid) {
-      final key = '${word.grade}|${word.en.trim().toLowerCase()}';
+      final key = '${word.grade}|${word.semester}|${word.unit}|${word.lesson}|${word.en.trim().toLowerCase()}';
       if (!index.containsKey(key)) added++;
       index[key] = word;
     }
@@ -523,6 +577,10 @@ class Store extends ChangeNotifier {
       ar: ar,
       exampleEn: _valueByHeaders(row, ['example_en', 'sentence_en', 'exampleenglish', 'example_english', 'sentenceenglish', 'sentence_english', 'examplesentence', 'example_sentence', 'book_example', 'example', 'sentence', 'الجمله_الانجليزيه', 'جمله_مثال', 'مثال_جمله', 'مثال_من_الكتاب', 'مثال_انجليزي']),
       exampleAr: _valueByHeaders(row, ['example_ar', 'sentence_ar', 'examplearabic', 'example_arabic', 'sentencearabic', 'sentence_arabic', 'translation', 'sentencetranslation', 'sentence_translation', 'ترجمه_الجمله', 'ترجمه_المثال', 'ترجمه_المثال_الي_العربيه', 'مثال_عربي']),
+      semester: _valueByHeaders(row, ['semester', 'term', 'الفصل_الدراسي', 'الفصل الدراسي']),
+      unit: _valueByHeaders(row, ['unit', 'الوحده', 'الوحدة']),
+      lesson: _valueByHeaders(row, ['lesson', 'الدرس']),
+      sourcePage: _valueByHeaders(row, ['source_page', 'page', 'رقم_الصفحه', 'رقم الصفحة', 'الصفحه', 'الصفحة']),
     );
   }
 
@@ -671,7 +729,7 @@ class Store extends ChangeNotifier {
     }
     final dir = await getTemporaryDirectory();
     final file = await File('${dir.path}/qamoosi_words_${DateTime.now().millisecondsSinceEpoch}.csv').writeAsString(b.toString(), flush: true);
-    await Share.shareXFiles([XFile(file.path)], subject: 'كلمات قاموسي المدرسي');
+    await Share.shareXFiles([XFile(file.path)], subject: 'كلمات القاموس المدرسي الأردني');
   }
 }
 
@@ -739,7 +797,13 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int index = 0;
-  late final pages = [HomePage(store: widget.store), DictionaryPage(store: widget.store), GradesPage(store: widget.store), StatsPage(store: widget.store), SettingsPage(store: widget.store)];
+  late final pages = [
+    HomePage(store: widget.store),
+    SmartSearchPage(store: widget.store),
+    CurriculumPage(store: widget.store),
+    LearnHubPage(store: widget.store),
+    MorePage(store: widget.store),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -749,13 +813,510 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: index,
         onDestinationSelected: (v) => setState(() => index = v),
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.search), label: 'القاموس'),
-          NavigationDestination(icon: Icon(Icons.school_outlined), selectedIcon: Icon(Icons.school), label: 'الصفوف'),
-          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'التقدم'),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: 'الإعدادات'),
+          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
+          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'البحث'),
+          NavigationDestination(icon: Icon(Icons.auto_stories_rounded), label: 'المنهاج'),
+          NavigationDestination(icon: Icon(Icons.extension_rounded), label: 'التعلم'),
+          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'المزيد'),
         ],
       ),
+    );
+  }
+}
+
+class SmartSearchPage extends StatefulWidget {
+  final Store store;
+  const SmartSearchPage({super.key, required this.store});
+  @override
+  State<SmartSearchPage> createState() => _SmartSearchPageState();
+}
+
+class _SmartSearchPageState extends State<SmartSearchPage> {
+  final controller = TextEditingController();
+  String query = '';
+
+  @override
+  void dispose() {
+    controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final results = widget.store.smartSearch(query);
+    return Scaffold(
+      appBar: AppBar(title: const Text('بحث ذكي')),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
+          child: TextField(
+            controller: controller,
+            autofocus: false,
+            onChanged: (v) => setState(() => query = v),
+            decoration: InputDecoration(
+              hintText: 'اكتب كلمة بالعربي أو الإنجليزي...',
+              prefixIcon: const Icon(Icons.search_rounded),
+              suffixIcon: query.isEmpty ? null : IconButton(
+                tooltip: 'مسح',
+                onPressed: () { controller.clear(); setState(() => query = ''); },
+                icon: const Icon(Icons.close_rounded),
+              ),
+            ),
+          ),
+        ),
+        if (query.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
+            child: Align(alignment: Alignment.centerRight, child: Text('${results.length} نتيجة مطابقة', style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xff64748b)))),
+          ),
+        Expanded(
+          child: query.isEmpty
+              ? const _SearchWelcome()
+              : results.isEmpty
+                  ? const Center(child: Text('لم أجد كلمة مطابقة'))
+                  : ListView.builder(
+                      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
+                      itemCount: results.length,
+                      itemBuilder: (_, i) {
+                        final w = results[i];
+                        final scope = [gradeName(w.grade), if (w.unit.isNotEmpty) w.unit, if (w.lesson.isNotEmpty) w.lesson].join(' • ');
+                        return Card(
+                          child: ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                            leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: const Icon(Icons.translate_rounded)),
+                            title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+                            subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              const SizedBox(height: 4),
+                              Text(w.ar, style: const TextStyle(fontWeight: FontWeight.w700)),
+                              const SizedBox(height: 3),
+                              Text(scope, style: const TextStyle(fontSize: 12, color: Color(0xff718096))),
+                            ]),
+                            trailing: IconButton(
+                              tooltip: 'نطق الكلمة',
+                              icon: const Icon(Icons.volume_up_rounded),
+                              onPressed: () => widget.store.speak(w.en),
+                            ),
+                            onTap: () => showWord(context, widget.store, w, source: results, initialIndex: i),
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ]),
+    );
+  }
+}
+
+class _SearchWelcome extends StatelessWidget {
+  const _SearchWelcome();
+  @override
+  Widget build(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(Icons.manage_search_rounded, size: 78, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(height: 16),
+        const Text('ابدأ بكتابة أول حرف', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        const Text('تظهر الكلمات المطابقة فورًا مع كل حرف تكتبه. اضغط على أي كلمة لفتح المعنى والمثال والترجمة والنطق.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
+      ]),
+    ),
+  );
+}
+
+class CurriculumPage extends StatelessWidget {
+  final Store store;
+  const CurriculumPage({super.key, required this.store});
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('المنهاج الأردني')),
+    body: ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: grades.length,
+      itemBuilder: (_, i) {
+        final g = grades[i];
+        final count = store.byGrade(g).length;
+        return Card(child: ListTile(
+          contentPadding: const EdgeInsets.all(16),
+          leading: CircleAvatar(child: Text(g, style: const TextStyle(fontWeight: FontWeight.w900))),
+          title: Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w900)),
+          subtitle: Text(count == 0 ? 'جاهز لإضافة وحدات ودروس المنهاج' : '$count كلمة محفوظة'),
+          trailing: const Icon(Icons.chevron_left_rounded),
+          onTap: () => push(context, GradeCurriculumPage(store: store, grade: g)),
+        ));
+      },
+    ),
+  );
+}
+
+class GradeCurriculumPage extends StatelessWidget {
+  final Store store;
+  final String grade;
+  const GradeCurriculumPage({super.key, required this.store, required this.grade});
+
+  @override
+  Widget build(BuildContext context) {
+    final words = store.byGrade(grade);
+    final semesters = words.map((w) => w.semester.trim()).where((v) => v.isNotEmpty).toSet().toList()..sort();
+    return Scaffold(
+      appBar: AppBar(title: Text(gradeName(grade))),
+      body: semesters.isEmpty
+          ? ListView(padding: const EdgeInsets.all(18), children: [
+              Card(child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [
+                Icon(Icons.auto_stories_rounded, size: 58, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(height: 14),
+                const Text('المحتوى الحالي غير مصنف حسب الفصل والوحدة والدرس', textAlign: TextAlign.center, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 8),
+                const Text('عند استيراد ملفات المنهاج أو استخدام مختبر الكتاب ستظهر هنا الفصول ثم الوحدات والدروس تلقائيًا.', textAlign: TextAlign.center),
+                if (words.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  FilledButton.icon(onPressed: () => push(context, GradeWordsPage(store: store, grade: grade)), icon: const Icon(Icons.list_alt_rounded), label: Text('عرض ${words.length} كلمة الحالية')),
+                ],
+              ]))),
+            ])
+          : ListView(padding: const EdgeInsets.all(16), children: semesters.map((semester) {
+              final semesterWords = store.byCurriculum(grade: grade, semester: semester);
+              final units = semesterWords.map((w) => w.unit).where((v) => v.isNotEmpty).toSet();
+              return Card(child: ExpansionTile(
+                title: Text(semester, style: const TextStyle(fontWeight: FontWeight.w900)),
+                subtitle: Text('${semesterWords.length} كلمة • ${units.length} وحدة'),
+                children: units.map((unit) {
+                  final unitWords = store.byCurriculum(grade: grade, semester: semester, unit: unit);
+                  final lessons = unitWords.map((w) => w.lesson).where((v) => v.isNotEmpty).toSet();
+                  return ListTile(
+                    leading: const Icon(Icons.menu_book_rounded),
+                    title: Text(unit, style: const TextStyle(fontWeight: FontWeight.w800)),
+                    subtitle: Text('${unitWords.length} كلمة • ${lessons.length} درس'),
+                    onTap: () => push(context, CurriculumWordsPage(store: store, title: unit, words: unitWords)),
+                  );
+                }).toList(),
+              ));
+            }).toList()),
+    );
+  }
+}
+
+class CurriculumWordsPage extends StatelessWidget {
+  final Store store;
+  final String title;
+  final List<WordItem> words;
+  const CurriculumWordsPage({super.key, required this.store, required this.title, required this.words});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: Text(title)),
+    body: ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: words.length,
+      itemBuilder: (_, i) {
+        final w = words[i];
+        return Card(child: ListTile(
+          title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
+          subtitle: Text([w.ar, if (w.lesson.isNotEmpty) w.lesson].join(' • ')),
+          trailing: IconButton(icon: const Icon(Icons.volume_up_rounded), tooltip: 'نطق الكلمة', onPressed: () => store.speak(w.en)),
+          onTap: () => showWord(context, store, w, source: words, initialIndex: i),
+        ));
+      },
+    ),
+  );
+}
+
+class LearnHubPage extends StatelessWidget {
+  final Store store;
+  const LearnHubPage({super.key, required this.store});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('التعلم والتمرين')),
+    body: ListView(padding: const EdgeInsets.all(16), children: [
+      Row(children: [
+        Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'البطاقات', subtitle: 'تعلم كلمة كلمة', onTap: () => push(context, FlashCardsPage(store: store)))),
+        const SizedBox(width: 12),
+        Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار ذكي', subtitle: 'اختبر فهمك', onTap: () => push(context, QuizSetupPage(store: store)))),
+      ]),
+      Row(children: [
+        Expanded(child: QuickCard(icon: Icons.psychology_alt_rounded, title: 'الصعبة', subtitle: '${store.difficult.length} تحتاج مراجعة', onTap: () => push(context, DifficultPage(store: store)))),
+        const SizedBox(width: 12),
+        Expanded(child: QuickCard(icon: Icons.format_quote_rounded, title: 'الجمل', subtitle: 'جمل مع النطق', onTap: () => push(context, SentencesPage(store: store)))),
+      ]),
+    ]),
+  );
+}
+
+class MorePage extends StatelessWidget {
+  final Store store;
+  const MorePage({super.key, required this.store});
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    appBar: AppBar(title: const Text('المزيد')),
+    body: ListView(padding: const EdgeInsets.all(16), children: [
+      SettingsTile(icon: Icons.auto_awesome_rounded, title: 'مختبر الكتاب', subtitle: 'رفع كتاب أو وحدة وتحويلها إلى قاموس منظم', onTap: () => push(context, BookLabPage(store: store))),
+      SettingsTile(icon: Icons.insights_rounded, title: 'التقدم والإحصائيات', subtitle: 'تابع الكلمات المتقنة والصعبة', onTap: () => push(context, StatsPage(store: store))),
+      SettingsTile(icon: Icons.people_alt_rounded, title: 'ملفات الطلاب', subtitle: 'التبديل بين الطلاب', onTap: () => push(context, ProfilesPage(store: store))),
+      SettingsTile(icon: Icons.settings_rounded, title: 'الإعدادات والملفات', subtitle: 'النطق والاستيراد والنسخ الاحتياطي', onTap: () => push(context, SettingsPage(store: store))),
+    ]),
+  );
+}
+
+class BookCandidate {
+  final String word;
+  String meaning;
+  String exampleEn;
+  String exampleAr;
+  final String unit;
+  final String lesson;
+  final String page;
+  int frequency;
+  bool selected;
+
+  BookCandidate({
+    required this.word,
+    this.meaning = '',
+    this.exampleEn = '',
+    this.exampleAr = '',
+    this.unit = '',
+    this.lesson = '',
+    this.page = '',
+    this.frequency = 1,
+    this.selected = true,
+  });
+}
+
+class BookLabPage extends StatefulWidget {
+  final Store store;
+  const BookLabPage({super.key, required this.store});
+  @override
+  State<BookLabPage> createState() => _BookLabPageState();
+}
+
+class _BookLabPageState extends State<BookLabPage> {
+  String grade = '7';
+  String semester = 'الفصل الأول';
+  String fileName = '';
+  bool busy = false;
+  List<BookCandidate> candidates = [];
+  int pagesRead = 0;
+
+  static const _stopWords = <String>{
+    'the','and','for','with','this','that','these','those','from','into','onto','than','then','when','where','what','which','who','whom','whose','why','how',
+    'you','your','yours','they','their','theirs','them','there','here','have','has','had','having','does','did','done','doing','are','was','were','been','being',
+    'can','could','will','would','shall','should','may','might','must','not','yes','no','very','more','most','some','any','many','much','few','each','every','both',
+    'about','above','after','again','against','along','among','around','before','below','between','during','inside','outside','over','under','through','without','within',
+    'lesson','unit','page','pages','student','students','teacher','teachers','book','workbook','exercise','exercises','activity','activities','read','write','listen','look',
+    'answer','answers','question','questions','complete','match','choose','circle','check','tick','work','pair','pairs','group','groups','english','arabic','example','examples'
+  };
+
+  bool _validWord(String raw, {required bool midSentenceTitleCase}) {
+    final w = raw.trim();
+    if (!RegExp(r"^[A-Za-z][A-Za-z'-]*$").hasMatch(w)) return false;
+    final lower = w.toLowerCase();
+    if (lower.length < 3 || lower.length > 28) return false;
+    if (_stopWords.contains(lower)) return false;
+    if (RegExp(r'^([a-z])\1+$').hasMatch(lower)) return false;
+    if (midSentenceTitleCase && RegExp(r'^[A-Z][a-z]+$').hasMatch(w)) return false;
+    return true;
+  }
+
+  String _sentenceFor(String pageText, String word) {
+    final normalized = pageText.replaceAll(RegExp(r'\s+'), ' ').trim();
+    final parts = normalized.split(RegExp(r'(?<=[.!?])\s+'));
+    final re = RegExp('\\b${RegExp.escape(word)}\\b', caseSensitive: false);
+    for (final sentence in parts) {
+      final t = sentence.trim();
+      if (t.length >= 20 && t.length <= 190 && re.hasMatch(t) && RegExp(r'[A-Za-z]{3}').hasMatch(t)) return t;
+    }
+    return '';
+  }
+
+  WordItem? _existingWord(String word) {
+    final q = word.toLowerCase();
+    for (final item in widget.store.words) {
+      if (item.en.toLowerCase() == q) return item;
+    }
+    return null;
+  }
+
+  Future<void> pickAndAnalyzePdf() async {
+    final picked = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf']);
+    if (picked == null || picked.files.isEmpty) return;
+    final file = picked.files.first;
+    if (file.path == null) {
+      if (mounted) snack(context, 'تعذر الوصول إلى مسار ملف PDF على هذا الجهاز');
+      return;
+    }
+    setState(() { busy = true; fileName = file.name; candidates = []; pagesRead = 0; });
+    try {
+      final pages = await ReadPdfText.getPDFtextPaginated(file.path!);
+      final map = <String, BookCandidate>{};
+      String currentUnit = '';
+      String currentLesson = '';
+      for (var pi = 0; pi < pages.length; pi++) {
+        final text = pages[pi];
+        final unitMatch = RegExp(r'\bUnit\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
+        final lessonMatch = RegExp(r'\bLesson\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
+        if (unitMatch != null) currentUnit = 'Unit ${unitMatch.group(1)}';
+        if (lessonMatch != null) currentLesson = 'Lesson ${lessonMatch.group(1)}';
+
+        final tokens = RegExp(r"[A-Za-z][A-Za-z'-]*").allMatches(text).toList();
+        for (var ti = 0; ti < tokens.length; ti++) {
+          final raw = tokens[ti].group(0)!;
+          final prefixStart = tokens[ti].start > 2 ? tokens[ti].start - 2 : 0;
+          final prefix = text.substring(prefixStart, tokens[ti].start);
+          final startsSentence = ti == 0 || RegExp(r'[.!?]\s*$').hasMatch(prefix);
+          if (!_validWord(raw, midSentenceTitleCase: !startsSentence)) continue;
+          final key = '${currentUnit.toLowerCase()}|${currentLesson.toLowerCase()}|${raw.toLowerCase()}';
+          final existing = _existingWord(raw);
+          final found = map[key];
+          if (found != null) {
+            found.frequency++;
+            if (found.exampleEn.isEmpty) found.exampleEn = _sentenceFor(text, raw);
+          } else {
+            map[key] = BookCandidate(
+              word: raw.toLowerCase(),
+              meaning: existing?.ar ?? '',
+              exampleEn: _sentenceFor(text, raw),
+              exampleAr: existing?.exampleAr ?? '',
+              unit: currentUnit,
+              lesson: currentLesson,
+              page: '${pi + 1}',
+            );
+          }
+        }
+      }
+      final list = map.values.where((e) => e.frequency >= 2 || e.exampleEn.isNotEmpty).toList();
+      list.sort((a, b) {
+        final f = b.frequency.compareTo(a.frequency);
+        if (f != 0) return f;
+        return a.word.compareTo(b.word);
+      });
+      setState(() { candidates = list; pagesRead = pages.length; });
+      if (mounted && list.isEmpty) snack(context, 'تمت قراءة الملف لكن لم يتم العثور على كلمات تعليمية مناسبة');
+    } catch (e) {
+      if (mounted) snack(context, 'تعذر تحليل PDF: $e');
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _editCandidate(BookCandidate c) async {
+    final meaning = TextEditingController(text: c.meaning);
+    final exampleEn = TextEditingController(text: c.exampleEn);
+    final exampleAr = TextEditingController(text: c.exampleAr);
+    final save = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text(c.word, textDirection: TextDirection.ltr),
+        content: SingleChildScrollView(child: Column(mainAxisSize: MainAxisSize.min, children: [
+          Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () => widget.store.speak(c.word), icon: const Icon(Icons.volume_up_rounded), tooltip: 'نطق الكلمة')),
+          TextField(controller: meaning, decoration: const InputDecoration(labelText: 'المعنى العربي')),
+          const SizedBox(height: 10),
+          TextField(controller: exampleEn, textDirection: TextDirection.ltr, maxLines: 3, decoration: const InputDecoration(labelText: 'مثال إنجليزي من الكتاب')),
+          const SizedBox(height: 8),
+          Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () => widget.store.speak(exampleEn.text), icon: const Icon(Icons.record_voice_over_rounded), tooltip: 'نطق المثال')),
+          TextField(controller: exampleAr, maxLines: 3, decoration: const InputDecoration(labelText: 'ترجمة المثال')),
+        ])),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext, false), child: const Text('إلغاء')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, true), child: const Text('حفظ التعديل')),
+        ],
+      ),
+    );
+    if (save == true) {
+      setState(() {
+        c.meaning = meaning.text.trim();
+        c.exampleEn = exampleEn.text.trim();
+        c.exampleAr = exampleAr.text.trim();
+      });
+    }
+    meaning.dispose(); exampleEn.dispose(); exampleAr.dispose();
+  }
+
+  Future<void> saveSelected() async {
+    final chosen = candidates.where((c) => c.selected && c.meaning.trim().isNotEmpty).toList();
+    if (chosen.isEmpty) {
+      snack(context, 'أضف معنى عربيًا لكلمة واحدة على الأقل قبل الحفظ');
+      return;
+    }
+    var nextId = widget.store.words.isEmpty ? 1 : widget.store.words.map((w) => w.id).reduce(max) + 1;
+    final items = <WordItem>[];
+    for (final c in chosen) {
+      items.add(WordItem(
+        id: nextId++,
+        grade: grade,
+        en: c.word,
+        ar: c.meaning,
+        exampleEn: c.exampleEn,
+        exampleAr: c.exampleAr,
+        semester: semester,
+        unit: c.unit,
+        lesson: c.lesson,
+        sourcePage: c.page,
+      ));
+    }
+    final added = await widget.store._mergeImportedWords(items);
+    if (mounted) snack(context, added == 0 ? 'تم تحديث الكلمات الموجودة دون تكرار' : 'تم حفظ $added كلمة جديدة في القاموس');
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedCount = candidates.where((c) => c.selected).length;
+    return Scaffold(
+      appBar: AppBar(title: const Text('مختبر الكتاب')),
+      body: Column(children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+          child: Column(children: [
+            Row(children: [
+              Expanded(child: DropdownButtonFormField<String>(value: grade, items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(), onChanged: busy ? null : (v) => setState(() => grade = v ?? grade), decoration: const InputDecoration(labelText: 'الصف'))),
+              const SizedBox(width: 10),
+              Expanded(child: DropdownButtonFormField<String>(value: semester, items: const [DropdownMenuItem(value: 'الفصل الأول', child: Text('الفصل الأول')), DropdownMenuItem(value: 'الفصل الثاني', child: Text('الفصل الثاني'))], onChanged: busy ? null : (v) => setState(() => semester = v ?? semester), decoration: const InputDecoration(labelText: 'الفصل'))),
+            ]),
+            const SizedBox(height: 10),
+            SizedBox(width: double.infinity, child: FilledButton.icon(onPressed: busy ? null : pickAndAnalyzePdf, icon: const Icon(Icons.picture_as_pdf_rounded), label: Text(busy ? 'جاري قراءة الكتاب...' : 'اختر كتاب PDF وابدأ الاستخراج'))),
+            if (fileName.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 8), child: Text('$fileName • $pagesRead صفحة', style: const TextStyle(color: Color(0xff64748b)))),
+          ]),
+        ),
+        if (busy) const LinearProgressIndicator(),
+        if (!busy && candidates.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(children: [
+              Expanded(child: Text('${candidates.length} كلمة مرشحة • $selectedCount محددة', style: const TextStyle(fontWeight: FontWeight.w800))),
+              TextButton(onPressed: () => setState(() { final all = selectedCount != candidates.length; for (final c in candidates) c.selected = all; }), child: Text(selectedCount == candidates.length ? 'إلغاء الكل' : 'تحديد الكل')),
+            ]),
+          ),
+        Expanded(
+          child: candidates.isEmpty
+              ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.auto_awesome_rounded, size: 78, color: Theme.of(context).colorScheme.primary),
+                  const SizedBox(height: 14),
+                  const Text('حوّل الكتاب إلى قاموس', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 8),
+                  const Text('يقرأ PDF، يكتشف الوحدة والدرس، يستخرج الكلمات التعليمية ويستبعد الأسماء والأماكن والأرقام والحروف والرموز، ثم يعرض النتائج للمراجعة قبل الحفظ.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
+                ])))
+              : ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
+                  itemCount: candidates.length,
+                  itemBuilder: (_, i) {
+                    final c = candidates[i];
+                    final scope = [if (c.unit.isNotEmpty) c.unit, if (c.lesson.isNotEmpty) c.lesson, 'ص ${c.page}'].join(' • ');
+                    return Card(child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      leading: Checkbox(value: c.selected, onChanged: (v) => setState(() => c.selected = v ?? false)),
+                      title: Row(children: [Expanded(child: Text(c.word, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), IconButton(onPressed: () => widget.store.speak(c.word), icon: const Icon(Icons.volume_up_rounded), tooltip: 'نطق')]),
+                      subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Text(c.meaning.isEmpty ? 'المعنى يحتاج مراجعة' : c.meaning, style: TextStyle(fontWeight: FontWeight.w700, color: c.meaning.isEmpty ? Theme.of(context).colorScheme.error : null)),
+                        const SizedBox(height: 3),
+                        Text(scope, style: const TextStyle(fontSize: 12, color: Color(0xff64748b))),
+                        if (c.exampleEn.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text(c.exampleEn, textDirection: TextDirection.ltr, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                      ]),
+                      trailing: IconButton(onPressed: () => _editCandidate(c), icon: const Icon(Icons.edit_rounded), tooltip: 'مراجعة وتعديل'),
+                    ));
+                  },
+                ),
+        ),
+      ]),
+      floatingActionButton: candidates.isEmpty ? null : FloatingActionButton.extended(onPressed: busy ? null : saveSelected, icon: const Icon(Icons.library_add_check_rounded), label: const Text('اعتماد وإضافة للقاموس')),
     );
   }
 }
@@ -770,7 +1331,7 @@ class HomePage extends StatelessWidget {
     final completion = store.words.isEmpty ? 0.0 : store.mastered.length / store.words.length;
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(title: Text('قاموسي المدرسي'), floating: true),
+        const SliverAppBar(title: Text('القاموس المدرسي الأردني'), floating: true),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
           sliver: SliverList.list(children: [
@@ -793,14 +1354,19 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Row(children: [
-              Expanded(child: QuickCard(icon: Icons.style, title: 'بطاقات سريعة', subtitle: 'راجع من آخر كلمة', onTap: () => push(context, FlashCardsPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.search_rounded, title: 'ابحث عن كلمة', subtitle: 'نتائج لحظية مع كل حرف', onTap: () => push(context, SmartSearchPage(store: store)))),
               const SizedBox(width: 12),
-              Expanded(child: QuickCard(icon: Icons.quiz_outlined, title: 'اختبار ذكي', subtitle: '20 سؤالاً متنوعاً', onTap: () => push(context, QuizSetupPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.auto_stories_rounded, title: 'المنهاج', subtitle: 'صف • فصل • وحدة • درس', onTap: () => push(context, CurriculumPage(store: store)))),
             ]),
             Row(children: [
-              Expanded(child: QuickCard(icon: Icons.warning_amber_rounded, title: 'الكلمات الصعبة', subtitle: '${store.difficult.length} كلمة', onTap: () => push(context, DifficultPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'بطاقات سريعة', subtitle: 'تعلم مع النطق', onTap: () => push(context, FlashCardsPage(store: store)))),
               const SizedBox(width: 12),
-              Expanded(child: QuickCard(icon: Icons.people_alt_outlined, title: 'الملفات الشخصية', subtitle: '${store.profiles.length} ملفات', onTap: () => push(context, ProfilesPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار ذكي', subtitle: 'اختبر فهمك', onTap: () => push(context, QuizSetupPage(store: store)))),
+            ]),
+            Row(children: [
+              Expanded(child: QuickCard(icon: Icons.auto_awesome_rounded, title: 'مختبر الكتاب', subtitle: 'ارفع PDF وحوله لقاموس', onTap: () => push(context, BookLabPage(store: store)))),
+              const SizedBox(width: 12),
+              Expanded(child: QuickCard(icon: Icons.insights_rounded, title: 'تقدمي', subtitle: '${store.mastered.length} كلمة متقنة', onTap: () => push(context, StatsPage(store: store)))),
             ]),
           ]),
         ),
@@ -1377,7 +1943,7 @@ class SettingsPage extends StatelessWidget {
           SettingsTile(icon: Icons.restore_rounded, title: 'استعادة نسخة من الجهاز', subtitle: 'بعد إعادة التثبيت اختر ملف qamoosi_backup_latest.json أو أي نسخة سابقة', onTap: () => restoreDialog(context)),
           SettingsTile(icon: Icons.table_view_outlined, title: 'تصدير ملف Excel/CSV', subtitle: 'للمراجعة أو الفتح على الكمبيوتر', onTap: () async { try { await store.exportCsv(); } catch (e) { if (context.mounted) snack(context, 'تعذر التصدير: $e'); } }),
           const SectionTitle('حول التطبيق'),
-          const SettingsTile(icon: Icons.info_outline, title: 'قاموسي المدرسي', subtitle: 'الإصدار $appVersion • يعمل دون إنترنت'),
+          const SettingsTile(icon: Icons.info_outline, title: 'القاموس المدرسي الأردني', subtitle: 'الإصدار $appVersion • يعمل دون إنترنت'),
           const Padding(padding: EdgeInsets.all(12), child: Text('نصيحة: أنشئ نسخة احتياطية دورياً واحفظها في Google Drive أو أي مكان آمن.', style: TextStyle(color: Color(0xff6f7d94)))),
         ]),
       );

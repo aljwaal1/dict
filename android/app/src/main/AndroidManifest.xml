@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <application
         android:allowBackup="true"
-        android:label="قاموسي المدرسي"
+        android:label="القاموس المدرسي الأردني"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

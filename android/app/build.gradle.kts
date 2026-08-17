@@ -14,7 +14,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.explapp.qamoosi_school"
+        applicationId = "com.explapp.jordan_school_dictionary"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
