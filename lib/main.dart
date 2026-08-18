@@ -4,23 +4,23 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
-import 'package:excel/excel.dart' as excel_lib;
 import 'package:archive/archive.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:read_pdf_text/read_pdf_text.dart';
+import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.1.0';
+const appVersion = '3.1.2';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await pdfrxFlutterInitialize();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
@@ -1146,7 +1146,16 @@ class _BookLabPageState extends State<BookLabPage> {
     }
     setState(() { busy = true; fileName = file.name; candidates = []; pagesRead = 0; });
     try {
-      final pages = await ReadPdfText.getPDFtextPaginated(file.path!);
+      final document = await PdfDocument.openFile(file.path!);
+      final pages = <String>[];
+      try {
+        for (final page in document.pages) {
+          final pageText = await page.loadText();
+          pages.add(pageText?.fullText ?? '');
+        }
+      } finally {
+        await document.dispose();
+      }
       final map = <String, BookCandidate>{};
       String currentUnit = '';
       String currentLesson = '';
