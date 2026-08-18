@@ -80,8 +80,8 @@ jobs:
                   else
                     mkdir -p apk
                     cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.1.1.apk
-                    if test -s apk/jordan-school-dictionary-v3.1.1.apk; then
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.1.2.apk
+                    if test -s apk/jordan-school-dictionary-v3.1.2.apk; then
                       echo "SUCCESS" > jordan_build_status.txt
                     else
                       echo "APK_MISSING" > jordan_build_status.txt
@@ -97,11 +97,11 @@ jobs:
           exit 0
 
       - name: Upload Jordan APK
-        if: hashFiles('apk/jordan-school-dictionary-v3.1.1.apk') != ''
+        if: hashFiles('apk/jordan-school-dictionary-v3.1.2.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: jordan-school-dictionary-v3.1.1-apk
-          path: apk/jordan-school-dictionary-v3.1.1.apk
+          name: jordan-school-dictionary-v3.1.2-apk
+          path: apk/jordan-school-dictionary-v3.1.2.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -115,7 +115,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Jordan School Dictionary v3.1.1 build"
+            git commit -m "Record Jordan School Dictionary v3.1.2 build"
             git pull --rebase origin jordan-school-dictionary || true
             git push origin HEAD:jordan-school-dictionary
           fi
