@@ -1,0 +1,1 @@
+Trigger isolated build for Jordan School Dictionary v3.0.0 redesign.
