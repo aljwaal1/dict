@@ -23,7 +23,7 @@ jobs:
   build:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - name: Checkout Jordan branch
         uses: actions/checkout@v4
@@ -43,7 +43,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Apply redesign, Book Lab and build
+      - name: Apply redesign, Book Lab, meanings and build
         shell: bash
         run: |
           set +e
@@ -64,10 +64,13 @@ jobs:
               p2=$?
               python3 tool/patch_jordan_v311_pdf_engine.py >> jordan_build_apk.log 2>&1
               p3=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ]; then
+              python3 tool/patch_jordan_v320_auto_meanings.py >> jordan_build_apk.log 2>&1
+              p4=$?
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ]; then
                 echo "PATCH_FAILED" > jordan_build_status.txt
               else
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
+                sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
                 sed -i 's/android:label="[^"]*"/android:label="القاموس المدرسي الأردني"/' android/app/src/main/AndroidManifest.xml || true
                 flutter analyze --no-fatal-infos --no-fatal-warnings > jordan_build_analyze.log 2>&1
@@ -80,8 +83,8 @@ jobs:
                   else
                     mkdir -p apk
                     cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.1.2.apk
-                    if test -s apk/jordan-school-dictionary-v3.1.2.apk; then
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.2.0.apk
+                    if test -s apk/jordan-school-dictionary-v3.2.0.apk; then
                       echo "SUCCESS" > jordan_build_status.txt
                     else
                       echo "APK_MISSING" > jordan_build_status.txt
@@ -97,11 +100,11 @@ jobs:
           exit 0
 
       - name: Upload Jordan APK
-        if: hashFiles('apk/jordan-school-dictionary-v3.1.2.apk') != ''
+        if: hashFiles('apk/jordan-school-dictionary-v3.2.0.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: jordan-school-dictionary-v3.1.2-apk
-          path: apk/jordan-school-dictionary-v3.1.2.apk
+          name: jordan-school-dictionary-v3.2.0-apk
+          path: apk/jordan-school-dictionary-v3.2.0.apk
           if-no-files-found: error
           retention-days: 30
 
@@ -115,7 +118,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Jordan School Dictionary v3.1.2 build"
+            git commit -m "Record Jordan School Dictionary v3.2.0 build"
             git pull --rebase origin jordan-school-dictionary || true
             git push origin HEAD:jordan-school-dictionary
           fi
