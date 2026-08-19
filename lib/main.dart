@@ -9,6 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:google_mlkit_translation/google_mlkit_translation.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdfrx/pdfrx.dart';
 import 'package:share_plus/share_plus.dart';
@@ -16,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.1.2';
+const appVersion = '3.2.0';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1112,6 +1113,13 @@ class _BookLabPageState extends State<BookLabPage> {
     final lower = w.toLowerCase();
     if (lower.length < 3 || lower.length > 28) return false;
     if (_stopWords.contains(lower)) return false;
+    const extraNoise = <String>{
+      'him','his','her','hers','she','he','its','our','ours','us','me','my','mine','we','it','itself','himself','herself','myself','yourself','ourselves','themselves',
+      'a','an','of','to','in','on','at','by','as','or','if','so','but','nor','yet','too','also','just','only','even','still','already','ever','never','once','twice',
+      'do','go','get','got','make','made','say','said','tell','told','ask','asked','use','used','see','saw','come','came','take','took','give','gave',
+      'one','two','three','four','five','six','seven','eight','nine','ten'
+    };
+    if (extraNoise.contains(lower)) return false;
     if (RegExp(r'^([a-z])\1+$').hasMatch(lower)) return false;
     if (midSentenceTitleCase && RegExp(r'^[A-Z][a-z]+$').hasMatch(w)) return false;
     return true;
@@ -1199,11 +1207,50 @@ class _BookLabPageState extends State<BookLabPage> {
         return a.word.compareTo(b.word);
       });
       setState(() { candidates = list; pagesRead = pages.length; });
+      if (list.isNotEmpty) {
+        await _autoFillMeanings(list);
+        if (mounted) setState(() { candidates = List<BookCandidate>.from(list); });
+      }
       if (mounted && list.isEmpty) snack(context, 'تمت قراءة الملف لكن لم يتم العثور على كلمات تعليمية مناسبة');
     } catch (e) {
       if (mounted) snack(context, 'تعذر تحليل PDF: $e');
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  Future<void> _autoFillMeanings(List<BookCandidate> list) async {
+    final missing = list.where((c) => c.meaning.trim().isEmpty).toList();
+    if (missing.isEmpty) return;
+
+    final manager = OnDeviceTranslatorModelManager();
+    final source = TranslateLanguage.english;
+    final target = TranslateLanguage.arabic;
+    try {
+      final enReady = await manager.isModelDownloaded(source.bcpCode);
+      if (!enReady) await manager.downloadModel(source.bcpCode);
+      final arReady = await manager.isModelDownloaded(target.bcpCode);
+      if (!arReady) await manager.downloadModel(target.bcpCode);
+
+      final translator = OnDeviceTranslator(sourceLanguage: source, targetLanguage: target);
+      try {
+        for (var i = 0; i < missing.length; i++) {
+          final c = missing[i];
+          try {
+            final translated = (await translator.translateText(c.word)).trim();
+            if (translated.isNotEmpty && translated.toLowerCase() != c.word.toLowerCase()) {
+              c.meaning = translated;
+            }
+          } catch (_) {}
+          if (mounted && (i % 25 == 0 || i == missing.length - 1)) {
+            setState(() {});
+          }
+        }
+      } finally {
+        translator.close();
+      }
+    } catch (_) {
+      // Keep unresolved items editable; extraction itself must never fail because translation model download failed.
     }
   }
 
