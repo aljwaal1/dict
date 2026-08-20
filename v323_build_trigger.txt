@@ -1,0 +1,1 @@
+Build Jordan School Dictionary Android v3.2.3 with all requested PDF extraction, meanings, sentence translation, and generated example improvements.
