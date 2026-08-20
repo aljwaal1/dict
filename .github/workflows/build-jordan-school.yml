@@ -43,7 +43,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Jordan Android v3.2.3
+      - name: Build Jordan Android v3.2.3 split APKs
         shell: bash
         run: |
           set +e
@@ -70,32 +70,38 @@ jobs:
                 sed -i 's/android:label="[^"]*"/android:label="القاموس المدرسي الأردني"/' android/app/src/main/AndroidManifest.xml || true
                 flutter analyze --no-fatal-infos --no-fatal-warnings > jordan_build_analyze.log 2>&1
                 if [ $? -ne 0 ]; then echo "ANALYZE_FAILED" > jordan_build_status.txt; else
-                  flutter build apk --release >> jordan_build_apk.log 2>&1
+                  flutter build apk --release --split-per-abi >> jordan_build_apk.log 2>&1
                   if [ $? -ne 0 ]; then echo "BUILD_FAILED" > jordan_build_status.txt; else
                     mkdir -p apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.2.3.apk
-                    if test -s apk/jordan-school-dictionary-v3.2.3.apk; then echo "SUCCESS" > jordan_build_status.txt; else echo "APK_MISSING" > jordan_build_status.txt; fi
+                    cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk apk/jordan-school-dictionary-v3.2.3-arm64-v8a.apk
+                    cp build/app/outputs/flutter-apk/app-armeabi-v7a-release.apk apk/jordan-school-dictionary-v3.2.3-armeabi-v7a.apk
+                    cp build/app/outputs/flutter-apk/app-x86_64-release.apk apk/jordan-school-dictionary-v3.2.3-x86_64.apk
+                    cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk apk/jordan-school-dictionary.apk
+                    if test -s apk/jordan-school-dictionary-v3.2.3-arm64-v8a.apk; then echo "SUCCESS" > jordan_build_status.txt; else echo "APK_MISSING" > jordan_build_status.txt; fi
                   fi
                 fi
               fi
             fi
           fi
           cat jordan_build_status.txt
+          ls -lh apk/*.apk 2>/dev/null || true
           tail -n 200 jordan_build_analyze.log 2>/dev/null || true
           tail -n 250 jordan_build_apk.log 2>/dev/null || true
           exit 0
 
-      - name: Upload Jordan APK
-        if: hashFiles('apk/jordan-school-dictionary-v3.2.3.apk') != ''
+      - name: Upload Jordan APKs
+        if: hashFiles('apk/jordan-school-dictionary-v3.2.3-arm64-v8a.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: jordan-school-dictionary-v3.2.3-apk
-          path: apk/jordan-school-dictionary-v3.2.3.apk
+          name: jordan-school-dictionary-v3.2.3-split-apks
+          path: |
+            apk/jordan-school-dictionary-v3.2.3-arm64-v8a.apk
+            apk/jordan-school-dictionary-v3.2.3-armeabi-v7a.apk
+            apk/jordan-school-dictionary-v3.2.3-x86_64.apk
           if-no-files-found: error
           retention-days: 30
 
-      - name: Persist generated app and APK on Jordan branch
+      - name: Persist generated app and APKs on Jordan branch
         if: always()
         shell: bash
         run: |
@@ -105,7 +111,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Jordan School Dictionary v3.2.3 build"
+            git commit -m "Record Jordan School Dictionary v3.2.3 split APK build"
             git pull --rebase origin jordan-school-dictionary || true
             git push origin HEAD:jordan-school-dictionary
           fi
