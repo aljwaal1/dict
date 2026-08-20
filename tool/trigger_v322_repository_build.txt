@@ -1,0 +1,1 @@
+Trigger repository build for Jordan School Dictionary v3.2.2 with clean extraction, Arabic meanings, sentence translation, and fallback examples.
