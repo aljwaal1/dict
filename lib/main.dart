@@ -17,7 +17,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.2.0';
+const appVersion = '3.2.3';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -1069,6 +1069,7 @@ class BookCandidate {
   final String page;
   int frequency;
   bool selected;
+  bool exampleGenerated;
 
   BookCandidate({
     required this.word,
@@ -1080,6 +1081,7 @@ class BookCandidate {
     this.page = '',
     this.frequency = 1,
     this.selected = true,
+    this.exampleGenerated = false,
   });
 }
 
@@ -1120,6 +1122,15 @@ class _BookLabPageState extends State<BookLabPage> {
       'one','two','three','four','five','six','seven','eight','nine','ten'
     };
     if (extraNoise.contains(lower)) return false;
+    const bookNoise = <String>{
+      'unit','lesson','page','pages','student','students','teacher','teachers','book','books','workbook','workbooks',
+      'exercise','exercises','activity','activities','task','tasks','question','questions','answer','answers',
+      'read','write','listen','look','check','choose','circle','match','complete','tick','underline','work','pair','pairs','group','groups',
+      'example','examples','english','arabic','grammar','vocabulary','language','review','revision','practice','project',
+      'true','false','correct','incorrect','number','numbers','name','names','word','words','sentence','sentences',
+      'first','second','third','fourth','next','previous','following','above','below'
+    };
+    if (bookNoise.contains(lower)) return false;
     if (RegExp(r'^([a-z])\1+$').hasMatch(lower)) return false;
     if (midSentenceTitleCase && RegExp(r'^[A-Z][a-z]+$').hasMatch(w)) return false;
     return true;
@@ -1134,6 +1145,11 @@ class _BookLabPageState extends State<BookLabPage> {
       if (t.length >= 20 && t.length <= 190 && re.hasMatch(t) && RegExp(r'[A-Za-z]{3}').hasMatch(t)) return t;
     }
     return '';
+  }
+
+  String _generatedExample(String word) {
+    final safe = word.trim().toLowerCase();
+    return 'We learned the word "$safe" in class today.';
   }
 
   WordItem? _existingWord(String word) {
@@ -1181,7 +1197,7 @@ class _BookLabPageState extends State<BookLabPage> {
           final prefix = text.substring(prefixStart, tokens[ti].start);
           final startsSentence = ti == 0 || RegExp(r'[.!?]\s*$').hasMatch(prefix);
           if (!_validWord(raw, midSentenceTitleCase: !startsSentence)) continue;
-          final key = '${currentUnit.toLowerCase()}|${currentLesson.toLowerCase()}|${raw.toLowerCase()}';
+          final key = raw.toLowerCase();
           final existing = _existingWord(raw);
           final found = map[key];
           if (found != null) {
@@ -1200,7 +1216,7 @@ class _BookLabPageState extends State<BookLabPage> {
           }
         }
       }
-      final list = map.values.where((e) => e.frequency >= 2 || e.exampleEn.isNotEmpty).toList();
+      final list = map.values.where((e) => e.frequency >= 2 || e.meaning.trim().isNotEmpty || (e.frequency == 1 && e.word.length >= 5 && e.exampleEn.isNotEmpty)).toList();
       list.sort((a, b) {
         final f = b.frequency.compareTo(a.frequency);
         if (f != 0) return f;
@@ -1220,29 +1236,50 @@ class _BookLabPageState extends State<BookLabPage> {
   }
 
   Future<void> _autoFillMeanings(List<BookCandidate> list) async {
-    final missing = list.where((c) => c.meaning.trim().isEmpty).toList();
-    if (missing.isEmpty) return;
+    if (list.isEmpty) return;
+
+    // Give every candidate a usable English example before translation.
+    for (final c in list) {
+      if (c.exampleEn.trim().isEmpty) {
+        c.exampleEn = _generatedExample(c.word);
+        c.exampleGenerated = true;
+      }
+    }
 
     final manager = OnDeviceTranslatorModelManager();
     final source = TranslateLanguage.english;
     final target = TranslateLanguage.arabic;
     try {
       final enReady = await manager.isModelDownloaded(source.bcpCode);
-      if (!enReady) await manager.downloadModel(source.bcpCode);
+      if (!enReady) await manager.downloadModel(source.bcpCode, isWifiRequired: false);
       final arReady = await manager.isModelDownloaded(target.bcpCode);
-      if (!arReady) await manager.downloadModel(target.bcpCode);
+      if (!arReady) await manager.downloadModel(target.bcpCode, isWifiRequired: false);
 
       final translator = OnDeviceTranslator(sourceLanguage: source, targetLanguage: target);
       try {
-        for (var i = 0; i < missing.length; i++) {
-          final c = missing[i];
-          try {
-            final translated = (await translator.translateText(c.word)).trim();
-            if (translated.isNotEmpty && translated.toLowerCase() != c.word.toLowerCase()) {
-              c.meaning = translated;
-            }
-          } catch (_) {}
-          if (mounted && (i % 25 == 0 || i == missing.length - 1)) {
+        for (var i = 0; i < list.length; i++) {
+          final c = list[i];
+          if (c.meaning.trim().isEmpty) {
+            try {
+              final translated = (await translator.translateText(c.word)).trim();
+              if (translated.isNotEmpty && translated.toLowerCase() != c.word.toLowerCase()) {
+                c.meaning = translated;
+              }
+            } catch (_) {}
+          }
+
+          // Always translate the actual sentence currently attached to the card.
+          // This avoids reusing an Arabic sentence that belonged to another example.
+          if (c.exampleEn.trim().isNotEmpty) {
+            try {
+              final translatedSentence = (await translator.translateText(c.exampleEn)).trim();
+              if (translatedSentence.isNotEmpty && translatedSentence.toLowerCase() != c.exampleEn.toLowerCase()) {
+                c.exampleAr = translatedSentence;
+              }
+            } catch (_) {}
+          }
+
+          if (mounted && (i % 20 == 0 || i == list.length - 1)) {
             setState(() {});
           }
         }
@@ -1250,7 +1287,8 @@ class _BookLabPageState extends State<BookLabPage> {
         translator.close();
       }
     } catch (_) {
-      // Keep unresolved items editable; extraction itself must never fail because translation model download failed.
+      // Extraction remains usable even if the language models could not be downloaded.
+      // Generated English examples stay editable and unresolved Arabic fields remain reviewable.
     }
   }
 
@@ -1266,7 +1304,7 @@ class _BookLabPageState extends State<BookLabPage> {
           Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () => widget.store.speak(c.word), icon: const Icon(Icons.volume_up_rounded), tooltip: 'نطق الكلمة')),
           TextField(controller: meaning, decoration: const InputDecoration(labelText: 'المعنى العربي')),
           const SizedBox(height: 10),
-          TextField(controller: exampleEn, textDirection: TextDirection.ltr, maxLines: 3, decoration: const InputDecoration(labelText: 'مثال إنجليزي من الكتاب')),
+          TextField(controller: exampleEn, textDirection: TextDirection.ltr, maxLines: 3, decoration: InputDecoration(labelText: c.exampleGenerated ? 'مثال إنجليزي مولّد' : 'مثال إنجليزي من الكتاب')),
           const SizedBox(height: 8),
           Align(alignment: Alignment.centerLeft, child: IconButton(onPressed: () => widget.store.speak(exampleEn.text), icon: const Icon(Icons.record_voice_over_rounded), tooltip: 'نطق المثال')),
           TextField(controller: exampleAr, maxLines: 3, decoration: const InputDecoration(labelText: 'ترجمة المثال')),
@@ -1282,6 +1320,7 @@ class _BookLabPageState extends State<BookLabPage> {
         c.meaning = meaning.text.trim();
         c.exampleEn = exampleEn.text.trim();
         c.exampleAr = exampleAr.text.trim();
+        c.exampleGenerated = false;
       });
     }
     meaning.dispose(); exampleEn.dispose(); exampleAr.dispose();
@@ -1364,7 +1403,7 @@ class _BookLabPageState extends State<BookLabPage> {
                         Text(c.meaning.isEmpty ? 'المعنى يحتاج مراجعة' : c.meaning, style: TextStyle(fontWeight: FontWeight.w700, color: c.meaning.isEmpty ? Theme.of(context).colorScheme.error : null)),
                         const SizedBox(height: 3),
                         Text(scope, style: const TextStyle(fontSize: 12, color: Color(0xff64748b))),
-                        if (c.exampleEn.isNotEmpty) Padding(padding: const EdgeInsets.only(top: 5), child: Text(c.exampleEn, textDirection: TextDirection.ltr, maxLines: 2, overflow: TextOverflow.ellipsis)),
+                        if (c.exampleEn.isNotEmpty) ...[Padding(padding: const EdgeInsets.only(top: 5), child: Text(c.exampleEn, textDirection: TextDirection.ltr, maxLines: 2, overflow: TextOverflow.ellipsis)), Text(c.exampleGenerated ? 'مثال مولّد • الترجمة العربية تلقائية' : 'مثال من الكتاب • الترجمة العربية تلقائية', style: const TextStyle(fontSize: 11, color: Color(0xff64748b)))],
                       ]),
                       trailing: IconButton(onPressed: () => _editCandidate(c), icon: const Icon(Icons.edit_rounded), tooltip: 'مراجعة وتعديل'),
                     ));
