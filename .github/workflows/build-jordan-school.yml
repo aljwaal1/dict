@@ -43,34 +43,25 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Apply redesign, Book Lab, meanings, clean extraction, sentence translations and build
+      - name: Build Jordan Android v3.2.3
         shell: bash
         run: |
           set +e
           echo "STARTED" > jordan_build_status.txt
           yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" >> jordan_build_apk.log 2>&1 || true
           flutter create --platforms=android --org com.explapp . >> jordan_build_apk.log 2>&1
-          if [ $? -ne 0 ]; then
-            echo "CREATE_FAILED" > jordan_build_status.txt
-          else
+          if [ $? -ne 0 ]; then echo "CREATE_FAILED" > jordan_build_status.txt; else
             rm -rf test
             flutter pub get >> jordan_build_apk.log 2>&1
-            if [ $? -ne 0 ]; then
-              echo "PUBGET_FAILED" > jordan_build_status.txt
-            else
-              python3 tool/patch_jordan_v300_redesign.py >> jordan_build_apk.log 2>&1
-              p1=$?
-              python3 tool/patch_jordan_v310_booklab.py >> jordan_build_apk.log 2>&1
-              p2=$?
-              python3 tool/patch_jordan_v311_pdf_engine.py >> jordan_build_apk.log 2>&1
-              p3=$?
-              python3 tool/patch_jordan_v320_auto_meanings.py >> jordan_build_apk.log 2>&1
-              p4=$?
-              python3 tool/patch_jordan_v321_clean_extraction.py >> jordan_build_apk.log 2>&1
-              p5=$?
-              python3 tool/patch_jordan_v322_examples_translation.py >> jordan_build_apk.log 2>&1
-              p6=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ]; then
+            if [ $? -ne 0 ]; then echo "PUBGET_FAILED" > jordan_build_status.txt; else
+              python3 tool/patch_jordan_v300_redesign.py >> jordan_build_apk.log 2>&1; p1=$?
+              python3 tool/patch_jordan_v310_booklab.py >> jordan_build_apk.log 2>&1; p2=$?
+              python3 tool/patch_jordan_v311_pdf_engine.py >> jordan_build_apk.log 2>&1; p3=$?
+              python3 tool/patch_jordan_v320_auto_meanings.py >> jordan_build_apk.log 2>&1; p4=$?
+              python3 tool/patch_jordan_v321_clean_extraction.py >> jordan_build_apk.log 2>&1; p5=$?
+              python3 tool/patch_jordan_v322_examples_translation.py >> jordan_build_apk.log 2>&1; p6=$?
+              python3 tool/patch_jordan_v323_release.py >> jordan_build_apk.log 2>&1; p7=$?
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ]; then
                 echo "PATCH_FAILED" > jordan_build_status.txt
               else
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
@@ -78,21 +69,13 @@ jobs:
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
                 sed -i 's/android:label="[^"]*"/android:label="القاموس المدرسي الأردني"/' android/app/src/main/AndroidManifest.xml || true
                 flutter analyze --no-fatal-infos --no-fatal-warnings > jordan_build_analyze.log 2>&1
-                if [ $? -ne 0 ]; then
-                  echo "ANALYZE_FAILED" > jordan_build_status.txt
-                else
+                if [ $? -ne 0 ]; then echo "ANALYZE_FAILED" > jordan_build_status.txt; else
                   flutter build apk --release >> jordan_build_apk.log 2>&1
-                  if [ $? -ne 0 ]; then
-                    echo "BUILD_FAILED" > jordan_build_status.txt
-                  else
+                  if [ $? -ne 0 ]; then echo "BUILD_FAILED" > jordan_build_status.txt; else
                     mkdir -p apk
                     cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary.apk
-                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.2.2.apk
-                    if test -s apk/jordan-school-dictionary-v3.2.2.apk; then
-                      echo "SUCCESS" > jordan_build_status.txt
-                    else
-                      echo "APK_MISSING" > jordan_build_status.txt
-                    fi
+                    cp build/app/outputs/flutter-apk/app-release.apk apk/jordan-school-dictionary-v3.2.3.apk
+                    if test -s apk/jordan-school-dictionary-v3.2.3.apk; then echo "SUCCESS" > jordan_build_status.txt; else echo "APK_MISSING" > jordan_build_status.txt; fi
                   fi
                 fi
               fi
@@ -104,16 +87,16 @@ jobs:
           exit 0
 
       - name: Upload Jordan APK
-        if: hashFiles('apk/jordan-school-dictionary-v3.2.2.apk') != ''
+        if: hashFiles('apk/jordan-school-dictionary-v3.2.3.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: jordan-school-dictionary-v3.2.2-apk
-          path: apk/jordan-school-dictionary-v3.2.2.apk
+          name: jordan-school-dictionary-v3.2.3-apk
+          path: apk/jordan-school-dictionary-v3.2.3.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Persist generated app and APK on Jordan branch
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -122,7 +105,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Jordan School Dictionary v3.2.2 build"
+            git commit -m "Record Jordan School Dictionary v3.2.3 build"
             git pull --rebase origin jordan-school-dictionary || true
             git push origin HEAD:jordan-school-dictionary
           fi
