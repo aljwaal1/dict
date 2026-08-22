@@ -1,0 +1,1 @@
+Build Qamoosi AI v3.3.0 universal release with global vocabulary and smart learning features.
