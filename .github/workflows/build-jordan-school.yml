@@ -61,9 +61,10 @@ jobs:
               python3 tool/patch_jordan_v321_clean_extraction.py >> qamoosi_ai_build_apk.log 2>&1; p5=$?
               python3 tool/patch_jordan_v322_examples_translation.py >> qamoosi_ai_build_apk.log 2>&1; p6=$?
               python3 tool/patch_jordan_v323_release.py >> qamoosi_ai_build_apk.log 2>&1; p7=$?
+              python3 tool/patch_generator_supplement_v330.py >> qamoosi_ai_build_apk.log 2>&1; ps=$?
               python3 tool/generate_global_ai_words_v330.py >> qamoosi_ai_build_apk.log 2>&1; p8=$?
               python3 tool/patch_global_ai_v330.py >> qamoosi_ai_build_apk.log 2>&1; p9=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ]; then
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $ps -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ]; then
                 echo "PATCH_FAILED" > qamoosi_ai_build_status.txt
               else
                 sed -i 's/^version:.*/version: 3.3.0+28/' pubspec.yaml
@@ -119,7 +120,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart android qamoosi_ai_build_status.txt qamoosi_ai_build_analyze.log qamoosi_ai_build_apk.log 2>/dev/null || true
+          git add lib/main.dart assets/data/words.json android qamoosi_ai_build_status.txt qamoosi_ai_build_analyze.log qamoosi_ai_build_apk.log 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
