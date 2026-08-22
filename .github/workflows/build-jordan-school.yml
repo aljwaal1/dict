@@ -1,13 +1,13 @@
-name: Build Jordan School Dictionary
+name: Build Qamoosi AI
 
 on:
   push:
     branches: ["jordan-school-dictionary"]
     paths-ignore:
-      - "apk/jordan-school-dictionary*.apk"
-      - "jordan_build_status.txt"
-      - "jordan_build_analyze.log"
-      - "jordan_build_apk.log"
+      - "apk/*.apk"
+      - "qamoosi_ai_build_status.txt"
+      - "qamoosi_ai_build_analyze.log"
+      - "qamoosi_ai_build_apk.log"
   pull_request:
     branches: ["jordan-school-dictionary"]
   workflow_dispatch:
@@ -16,16 +16,16 @@ permissions:
   contents: write
 
 concurrency:
-  group: jordan-school-dictionary-build
+  group: qamoosi-ai-build
   cancel-in-progress: true
 
 jobs:
   build:
     if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 45
     steps:
-      - name: Checkout Jordan branch
+      - name: Checkout app branch
         uses: actions/checkout@v4
         with:
           ref: jordan-school-dictionary
@@ -43,70 +43,74 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Jordan Android v3.2.3 Universal APK
+      - name: Build Qamoosi AI v3.3.0 Universal APK
         shell: bash
         run: |
           set +e
-          echo "STARTED" > jordan_build_status.txt
-          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" >> jordan_build_apk.log 2>&1 || true
-          flutter create --platforms=android --org com.explapp . >> jordan_build_apk.log 2>&1
-          if [ $? -ne 0 ]; then echo "CREATE_FAILED" > jordan_build_status.txt; else
+          echo "STARTED" > qamoosi_ai_build_status.txt
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" >> qamoosi_ai_build_apk.log 2>&1 || true
+          flutter create --platforms=android --org com.explapp . >> qamoosi_ai_build_apk.log 2>&1
+          if [ $? -ne 0 ]; then echo "CREATE_FAILED" > qamoosi_ai_build_status.txt; else
             rm -rf test
-            flutter pub get >> jordan_build_apk.log 2>&1
-            if [ $? -ne 0 ]; then echo "PUBGET_FAILED" > jordan_build_status.txt; else
-              python3 tool/patch_jordan_v300_redesign.py >> jordan_build_apk.log 2>&1; p1=$?
-              python3 tool/patch_jordan_v310_booklab.py >> jordan_build_apk.log 2>&1; p2=$?
-              python3 tool/patch_jordan_v311_pdf_engine.py >> jordan_build_apk.log 2>&1; p3=$?
-              python3 tool/patch_jordan_v320_auto_meanings.py >> jordan_build_apk.log 2>&1; p4=$?
-              python3 tool/patch_jordan_v321_clean_extraction.py >> jordan_build_apk.log 2>&1; p5=$?
-              python3 tool/patch_jordan_v322_examples_translation.py >> jordan_build_apk.log 2>&1; p6=$?
-              python3 tool/patch_jordan_v323_release.py >> jordan_build_apk.log 2>&1; p7=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ]; then
-                echo "PATCH_FAILED" > jordan_build_status.txt
+            flutter pub get >> qamoosi_ai_build_apk.log 2>&1
+            if [ $? -ne 0 ]; then echo "PUBGET_FAILED" > qamoosi_ai_build_status.txt; else
+              python3 tool/patch_jordan_v300_redesign.py >> qamoosi_ai_build_apk.log 2>&1; p1=$?
+              python3 tool/patch_jordan_v310_booklab.py >> qamoosi_ai_build_apk.log 2>&1; p2=$?
+              python3 tool/patch_jordan_v311_pdf_engine.py >> qamoosi_ai_build_apk.log 2>&1; p3=$?
+              python3 tool/patch_jordan_v320_auto_meanings.py >> qamoosi_ai_build_apk.log 2>&1; p4=$?
+              python3 tool/patch_jordan_v321_clean_extraction.py >> qamoosi_ai_build_apk.log 2>&1; p5=$?
+              python3 tool/patch_jordan_v322_examples_translation.py >> qamoosi_ai_build_apk.log 2>&1; p6=$?
+              python3 tool/patch_jordan_v323_release.py >> qamoosi_ai_build_apk.log 2>&1; p7=$?
+              python3 tool/generate_global_ai_words_v330.py >> qamoosi_ai_build_apk.log 2>&1; p8=$?
+              python3 tool/patch_global_ai_v330.py >> qamoosi_ai_build_apk.log 2>&1; p9=$?
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ]; then
+                echo "PATCH_FAILED" > qamoosi_ai_build_status.txt
               else
+                sed -i 's/^version:.*/version: 3.3.0+28/' pubspec.yaml
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
                 sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
-                sed -i 's/android:label="[^"]*"/android:label="القاموس المدرسي الأردني"/' android/app/src/main/AndroidManifest.xml || true
-                flutter analyze --no-fatal-infos --no-fatal-warnings > jordan_build_analyze.log 2>&1
-                if [ $? -ne 0 ]; then echo "ANALYZE_FAILED" > jordan_build_status.txt; else
-                  flutter build apk --release >> jordan_build_apk.log 2>&1
-                  if [ $? -ne 0 ]; then echo "BUILD_FAILED" > jordan_build_status.txt; else
+                sed -i 's/android:label="[^"]*"/android:label="قاموسي AI"/' android/app/src/main/AndroidManifest.xml || true
+                flutter pub get >> qamoosi_ai_build_apk.log 2>&1
+                flutter analyze --no-fatal-infos --no-fatal-warnings > qamoosi_ai_build_analyze.log 2>&1
+                if [ $? -ne 0 ]; then echo "ANALYZE_FAILED" > qamoosi_ai_build_status.txt; else
+                  flutter build apk --release >> qamoosi_ai_build_apk.log 2>&1
+                  if [ $? -ne 0 ]; then echo "BUILD_FAILED" > qamoosi_ai_build_status.txt; else
                     mkdir -p release
-                    cp build/app/outputs/flutter-apk/app-release.apk release/jordan-school-dictionary-v3.2.3-universal.apk
-                    if test -s release/jordan-school-dictionary-v3.2.3-universal.apk; then echo "SUCCESS" > jordan_build_status.txt; else echo "APK_MISSING" > jordan_build_status.txt; fi
+                    cp build/app/outputs/flutter-apk/app-release.apk release/qamoosi-ai-v3.3.0-universal.apk
+                    if test -s release/qamoosi-ai-v3.3.0-universal.apk; then echo "SUCCESS" > qamoosi_ai_build_status.txt; else echo "APK_MISSING" > qamoosi_ai_build_status.txt; fi
                   fi
                 fi
               fi
             fi
           fi
-          cat jordan_build_status.txt
+          cat qamoosi_ai_build_status.txt
           ls -lh release/*.apk 2>/dev/null || true
-          tail -n 200 jordan_build_analyze.log 2>/dev/null || true
-          tail -n 250 jordan_build_apk.log 2>/dev/null || true
+          tail -n 180 qamoosi_ai_build_analyze.log 2>/dev/null || true
+          tail -n 220 qamoosi_ai_build_apk.log 2>/dev/null || true
           exit 0
 
       - name: Upload Universal APK artifact
-        if: hashFiles('release/jordan-school-dictionary-v3.2.3-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.3.0-universal.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: jordan-school-dictionary-v3.2.3-universal-apk
-          path: release/jordan-school-dictionary-v3.2.3-universal.apk
+          name: qamoosi-ai-v3.3.0-universal-apk
+          path: release/qamoosi-ai-v3.3.0-universal.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish Universal APK to GitHub Release
-        if: hashFiles('release/jordan-school-dictionary-v3.2.3-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.3.0-universal.apk') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="jordan-v3.2.3-universal"
-          FILE="release/jordan-school-dictionary-v3.2.3-universal.apk"
+          TAG="qamoosi-ai-v3.3.0"
+          FILE="release/qamoosi-ai-v3.3.0-universal.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
-            gh release create "$TAG" "$FILE" --target jordan-school-dictionary --title "Jordan School Dictionary v3.2.3 Universal" --notes "Universal Android APK with all v3.2.3 Jordan School Dictionary updates."
+            gh release create "$TAG" "$FILE" --target jordan-school-dictionary --title "Qamoosi AI v3.3.0" --notes "قاموسي AI: القاموس الذكي للطلاب العرب. نسخة Universal تشمل الواجهة العالمية، شاشات الترحيب، البحث الذكي المتسامح مع الأخطاء، خطة مراجعة متكيفة، استوديو AI للكتاب، والتعلم الآلي للترجمة، مع 50 كلمة جديدة على الأقل لكل صف من 1 إلى 12 ومعاني وجمل وترجمات."
           fi
 
       - name: Persist generated source and logs
@@ -115,14 +119,14 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart android jordan_build_status.txt jordan_build_analyze.log jordan_build_apk.log 2>/dev/null || true
+          git add lib/main.dart android qamoosi_ai_build_status.txt qamoosi_ai_build_analyze.log qamoosi_ai_build_apk.log 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Jordan School Dictionary v3.2.3 universal build"
+            git commit -m "Record Qamoosi AI v3.3.0 universal build"
             git pull --rebase origin jordan-school-dictionary || true
             git push origin HEAD:jordan-school-dictionary
           fi
 
       - name: Verify success
-        run: test "$(cat jordan_build_status.txt)" = "SUCCESS"
+        run: test "$(cat qamoosi_ai_build_status.txt)" = "SUCCESS"
