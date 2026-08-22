@@ -1,1 +1,1 @@
-Trigger PR build for Qamoosi AI v3.3.0.
+Trigger PR build for Qamoosi AI v3.3.0 after ensuring at least 50 genuinely new words per grade.
