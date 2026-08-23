@@ -1,0 +1,1 @@
+Trigger PR build for Qamoosi AI v3.3.0 after fixing supplemental vocabulary generator injection.
