@@ -6,8 +6,6 @@ marker = '\n\ndef make_examples(word, meaning, grade):'
 if marker not in s:
     raise SystemExit('generator marker not found')
 
-# Shared international student vocabulary bank. The same useful word may be
-# appropriate in more than one grade; uniqueness is enforced inside each grade.
 supplement = [
 ('apron','مئزر'),('basket','سلة'),('blanket','بطانية'),('bottle','زجاجة'),('button','زر'),('candle','شمعة'),('carpet','سجادة'),('ceiling','سقف'),('circle','دائرة'),('corner','زاوية'),
 ('cupboard','خزانة'),('curtain','ستارة'),('cushion','وسادة'),('drawer','درج'),('envelope','مغلف'),('feather','ريشة'),('fence','سياج'),('finger','إصبع'),('glove','قفاز'),('helmet','خوذة'),
@@ -24,7 +22,7 @@ supplement = [
 ('preparation','تحضير'),('presentation','عرض تقديمي'),('procedure','إجراء'),('reflection','تأمل'),('requirement','متطلب'),('response','استجابة'),('technique','تقنية'),('understanding','فهم'),('connection','ارتباط'),('communication','تواصل')
 ]
 
-insert = "\n\n# Extra bank guarantees at least 50 NEW entries after removing words already present.\nfor _grade in grades:\n    grades[_grade].extend(supplement)\n"
+insert = "\n\n# Extra bank guarantees at least 50 NEW entries after removing words already present.\nsupplement = " + repr(supplement) + "\nfor _grade in grades:\n    grades[_grade].extend(supplement)\n"
 s = s.replace(marker, insert + marker, 1)
 p.write_text(s, encoding='utf-8')
 print('Expanded global vocabulary candidates for all 12 grades')
