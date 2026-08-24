@@ -1,1 +1,1 @@
-Trigger clean-source materialization for Qamoosi AI v3.4.1.
+Run verified clean-source materialization for Qamoosi AI v3.4.1.
