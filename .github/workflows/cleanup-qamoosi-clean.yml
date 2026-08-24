@@ -1,0 +1,39 @@
+name: Cleanup Qamoosi AI clean source
+
+on:
+  push:
+    branches: ["qamoosi-ai-clean-v341"]
+    paths:
+      - "tool/cleanup_clean_source_v341.py"
+      - ".github/workflows/cleanup-qamoosi-clean.yml"
+      - "cleanup_qamoosi_clean_trigger.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean branch
+        uses: actions/checkout@v4
+        with:
+          ref: qamoosi-ai-clean-v341
+          fetch-depth: 0
+
+      - name: Remove duplicate historical insertions
+        run: python3 tool/cleanup_clean_source_v341.py
+
+      - name: Commit cleaned final source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Clean duplicate v3.4.1 source definitions"
+            git push origin HEAD:qamoosi-ai-clean-v341
+          fi
