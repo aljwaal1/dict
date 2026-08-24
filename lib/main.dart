@@ -17,7 +17,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.2.3';
+const appVersion = '3.4.1';
+const QAMOOSI_V340_LEARNING_UX = true;
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -38,7 +39,7 @@ class QamoosiApp extends StatelessWidget {
     final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'القاموس المدرسي الأردني',
+      title: 'قاموسي AI',
       locale: const Locale('ar'),
       supportedLocales: const [Locale('ar'), Locale('en')],
       localizationsDelegates: const [
@@ -109,9 +110,12 @@ class QamoosiApp extends StatelessWidget {
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
         ),
-        navigationBarTheme: const NavigationBarThemeData(
+        navigationBarTheme: NavigationBarThemeData(
           height: 72,
-          labelTextStyle: WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700)),
+          backgroundColor: Colors.white,
+          indicatorColor: const Color(0xffdbeafe),
+          elevation: 2,
+          labelTextStyle: const WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
         ),
       ),
       home: const AppBootstrap(),
@@ -192,6 +196,7 @@ class Store extends ChangeNotifier {
   double points = 0;
   Set<String> mastered = {};
   Set<String> difficult = {};
+  Set<String> studied = {};
   Map<String, int> wrongCounts = {};
   Map<String, int> lastIndexByGrade = {};
   String query = '';
@@ -211,15 +216,50 @@ class Store extends ChangeNotifier {
     await _loadWords();
     await loadProgress();
     await _configureTts();
+    await _prepareTts();
   }
 
   Future<void> _loadWords() async {
-    final raw = prefs.getString('words_json') ?? await rootBundle.loadString('assets/data/words.json');
-    final data = jsonDecode(raw) as Map<String, dynamic>;
-    words = (data['words'] as List? ?? [])
+    // Always load the latest global built-in vocabulary, then merge the user's
+    // saved words on top. This preserves user data while allowing app updates
+    // to add new grade vocabulary and enrich older entries with examples.
+    final seedRaw = await rootBundle.loadString('assets/data/words.json');
+    final seedData = jsonDecode(seedRaw) as Map<String, dynamic>;
+    final seedWords = (seedData['words'] as List? ?? [])
         .map((e) => WordItem.fromJson(Map<String, dynamic>.from(e)))
         .where((w) => w.en.isNotEmpty && w.ar.isNotEmpty && grades.contains(w.grade))
         .toList(growable: true);
+
+    final index = <String, WordItem>{};
+    String key(WordItem w) => '${w.grade}|${w.semester}|${w.unit}|${w.lesson}|${w.en.trim().toLowerCase()}';
+    for (final w in seedWords) index[key(w)] = w;
+
+    final savedRaw = prefs.getString('words_json');
+    if (savedRaw != null) {
+      try {
+        final savedData = jsonDecode(savedRaw) as Map<String, dynamic>;
+        final savedWords = (savedData['words'] as List? ?? [])
+            .map((e) => WordItem.fromJson(Map<String, dynamic>.from(e)))
+            .where((w) => w.en.isNotEmpty && w.ar.isNotEmpty && grades.contains(w.grade));
+        for (final w in savedWords) {
+          final k = key(w);
+          final seed = index[k];
+          index[k] = WordItem(
+            id: w.id,
+            grade: w.grade,
+            en: w.en,
+            ar: w.ar,
+            exampleEn: w.exampleEn.isNotEmpty ? w.exampleEn : (seed?.exampleEn ?? ''),
+            exampleAr: w.exampleAr.isNotEmpty ? w.exampleAr : (seed?.exampleAr ?? ''),
+            semester: w.semester,
+            unit: w.unit,
+            lesson: w.lesson,
+            sourcePage: w.sourcePage,
+          );
+        }
+      } catch (_) {}
+    }
+    words = index.values.toList(growable: true);
   }
 
   Future<void> persistWords() => prefs.setString('words_json', jsonEncode({'version': 2, 'words': words.map((e) => e.toJson()).toList()}));
@@ -227,6 +267,7 @@ class Store extends ChangeNotifier {
   Future<void> loadProgress() async {
     mastered = (prefs.getStringList('$pkey.mastered') ?? []).toSet();
     difficult = (prefs.getStringList('$pkey.difficult') ?? []).toSet();
+    studied = (prefs.getStringList('$pkey.studied') ?? []).toSet();
     wrongCounts = _readMap('$pkey.wrongCounts');
     lastIndexByGrade = _readMap('$pkey.lastIndex');
     points = prefs.getDouble('$pkey.points') ?? 0;
@@ -246,6 +287,7 @@ class Store extends ChangeNotifier {
     await Future.wait([
       prefs.setStringList('$pkey.mastered', mastered.toList()),
       prefs.setStringList('$pkey.difficult', difficult.toList()),
+      prefs.setStringList('$pkey.studied', studied.toList()),
       prefs.setString('$pkey.wrongCounts', jsonEncode(wrongCounts)),
       prefs.setString('$pkey.lastIndex', jsonEncode(lastIndexByGrade)),
       prefs.setDouble('$pkey.points', points),
@@ -262,6 +304,37 @@ class Store extends ChangeNotifier {
     return true;
   }).toList(growable: false);
 
+  int _editDistance(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    var prev = List<int>.generate(b.length + 1, (i) => i);
+    for (var i = 1; i <= a.length; i++) {
+      final cur = List<int>.filled(b.length + 1, 0);
+      cur[0] = i;
+      for (var j = 1; j <= b.length; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        cur[j] = min(min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  List<WordItem> get smartStudyWords {
+    final ranked = List<WordItem>.from(words);
+    int score(WordItem w) {
+      final id = '${w.id}';
+      var value = (wrongCounts[id] ?? 0) * 10;
+      if (difficult.contains(id)) value += 20;
+      if (!mastered.contains(id)) value += 5;
+      if (w.exampleEn.isNotEmpty && w.exampleAr.isNotEmpty) value += 2;
+      return value;
+    }
+    ranked.sort((a, b) => score(b).compareTo(score(a)));
+    return ranked.where((w) => score(w) > 0).take(30).toList(growable: false);
+  }
+
   List<WordItem> smartSearch(String value) {
     final q = value.trim().toLowerCase();
     if (q.isEmpty) return const [];
@@ -273,7 +346,8 @@ class Store extends ChangeNotifier {
       if (en == q || ar == q) return 0;
       if (en.startsWith(q) || ar.startsWith(q)) return 1;
       if (en.contains(q) || ar.contains(q)) return 2;
-      if (exEn.contains(q) || exAr.contains(q)) return 3;
+      if (q.length >= 3 && _editDistance(en, q) <= (q.length >= 6 ? 2 : 1)) return 3;
+      if (exEn.contains(q) || exAr.contains(q)) return 4;
       return 99;
     }
     final result = words.where((w) => rank(w) < 99).toList(growable: false);
@@ -304,6 +378,9 @@ class Store extends ChangeNotifier {
     notifyListeners();
   }
 
+  bool _ttsWarmed = false;
+  Future<bool>? _ttsPreparing;
+
   Future<bool> _configureTts() async {
     try {
       await tts.awaitSpeakCompletion(false);
@@ -329,11 +406,38 @@ class Store extends ChangeNotifier {
     }
   }
 
+  Future<bool> _prepareTts() async {
+    if (_ttsWarmed && ttsReady) return true;
+    final running = _ttsPreparing;
+    if (running != null) return running;
+    final future = () async {
+      if (!ttsReady && !await _configureTts()) return false;
+      try {
+        await tts.setVolume(0.0);
+        await tts.speak('ready');
+        await Future.delayed(const Duration(milliseconds: 520));
+        await tts.stop();
+        await tts.setVolume(1.0);
+        await Future.delayed(const Duration(milliseconds: 80));
+        _ttsWarmed = true;
+        return true;
+      } catch (_) {
+        try { await tts.setVolume(1.0); } catch (_) {}
+        _ttsWarmed = true;
+        return ttsReady;
+      }
+    }();
+    _ttsPreparing = future;
+    final ok = await future;
+    _ttsPreparing = null;
+    return ok;
+  }
+
   Future<bool> speak(String text) async {
     final value = text.trim();
     if (!sound || value.isEmpty) return false;
     try {
-      if (!ttsReady && !await _configureTts()) return false;
+      if (!await _prepareTts()) return false;
       await tts.stop();
       await tts.setLanguage(ttsLanguage);
       await tts.setSpeechRate(.42);
@@ -343,8 +447,11 @@ class Store extends ChangeNotifier {
       return result == 1 || result == true || result == null;
     } catch (_) {
       ttsReady = false;
-      if (!await _configureTts()) return false;
+      _ttsWarmed = false;
+      if (!await _prepareTts()) return false;
       try {
+        await tts.stop();
+        await Future.delayed(const Duration(milliseconds: 120));
         final result = await tts.speak(value);
         return result == 1 || result == true || result == null;
       } catch (_) {
@@ -355,17 +462,48 @@ class Store extends ChangeNotifier {
 
   Future<bool> testPronunciation() async {
     if (!sound) return false;
-    return speak('Welcome to my school dictionary');
+    return speak('Welcome to Qamoosi AI, the smart dictionary for Arab students');
   }
 
 
 
 
 
+  Future<void> markStudied(WordItem word) async {
+    final key = '${word.id}';
+    if (studied.add(key)) {
+      await prefs.setStringList('$pkey.studied', studied.toList());
+      notifyListeners();
+    }
+  }
+
+  int difficultyScore(WordItem word) {
+    final key = '${word.id}';
+    var score = (wrongCounts[key] ?? 0) * 10;
+    if (difficult.contains(key)) score += 20;
+    if (mastered.contains(key)) score -= 12;
+    return score;
+  }
+
+  Future<void> setReviewState(WordItem word, {required bool masteredNow}) async {
+    final key = '${word.id}';
+    studied.add(key);
+    if (masteredNow) {
+      mastered.add(key);
+      difficult.remove(key);
+    } else {
+      difficult.add(key);
+      mastered.remove(key);
+    }
+    await saveProgress();
+  }
+
   Future<void> answer(WordItem word, bool correct) async {
+    studied.add('${word.id}');
     if (correct) {
       points += .5;
       mastered.add('${word.id}');
+      difficult.remove('${word.id}');
     } else {
       difficult.add('${word.id}');
       wrongCounts['${word.id}'] = (wrongCounts['${word.id}'] ?? 0) + 1;
@@ -412,7 +550,7 @@ class Store extends ChangeNotifier {
 
   Future<File> createBackupFile() async {
     final payload = {
-      'app': 'القاموس المدرسي الأردني',
+      'app': 'قاموسي AI',
       'format': 'qamoosi-backup',
       'formatVersion': 2,
       'appVersion': appVersion,
@@ -434,7 +572,7 @@ class Store extends ChangeNotifier {
 
   Future<bool> savePersistentBackupToDevice() async {
     final payload = {
-      'app': 'القاموس المدرسي الأردني',
+      'app': 'قاموسي AI',
       'format': 'qamoosi-backup',
       'formatVersion': 2,
       'appVersion': appVersion,
@@ -730,7 +868,7 @@ class Store extends ChangeNotifier {
     }
     final dir = await getTemporaryDirectory();
     final file = await File('${dir.path}/qamoosi_words_${DateTime.now().millisecondsSinceEpoch}.csv').writeAsString(b.toString(), flush: true);
-    await Share.shareXFiles([XFile(file.path)], subject: 'كلمات القاموس المدرسي الأردني');
+    await Share.shareXFiles([XFile(file.path)], subject: 'كلمات قاموسي AI');
   }
 }
 
@@ -743,6 +881,7 @@ class AppBootstrap extends StatefulWidget {
 class _AppBootstrapState extends State<AppBootstrap> {
   final store = Store();
   bool ready = false;
+  bool introDone = false;
 
   @override
   void initState() {
@@ -750,9 +889,6 @@ class _AppBootstrapState extends State<AppBootstrap> {
     store.init().then((_) {
       if (!mounted) return;
       setState(() => ready = true);
-      if (store.freshInstall) {
-        WidgetsBinding.instance.addPostFrameCallback((_) => _offerRecovery());
-      }
     });
   }
 
@@ -785,8 +921,74 @@ class _AppBootstrapState extends State<AppBootstrap> {
   @override
   Widget build(BuildContext context) {
     if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (store.freshInstall && !introDone) {
+      return QamoosiAiOnboarding(onDone: () {
+        setState(() => introDone = true);
+        WidgetsBinding.instance.addPostFrameCallback((_) => _offerRecovery());
+      });
+    }
     return AnimatedBuilder(animation: store, builder: (_, __) => HomeShell(store: store));
   }
+}
+
+
+class QamoosiAiOnboarding extends StatefulWidget {
+  final VoidCallback onDone;
+  const QamoosiAiOnboarding({super.key, required this.onDone});
+  @override
+  State<QamoosiAiOnboarding> createState() => _QamoosiAiOnboardingState();
+}
+
+class _QamoosiAiOnboardingState extends State<QamoosiAiOnboarding> {
+  final controller = PageController();
+  int page = 0;
+  final items = const [
+    (Icons.auto_awesome_rounded, 'قاموسي AI', 'القاموس الذكي للطلاب العرب', 'تعلّم الإنجليزية من كلمات مناسبة لصفك مع المعنى والجملة والترجمة والنطق.'),
+    (Icons.manage_search_rounded, 'بحث يفهم أخطاء الكتابة', 'اكتب بالعربي أو الإنجليزي', 'البحث الذكي يرتب النتائج ويقترح الكلمات القريبة حتى عند وجود خطأ بسيط في الكتابة.'),
+    (Icons.picture_as_pdf_rounded, 'استوديو AI للكتاب', 'حوّل أي PDF إلى مفردات', 'يستخرج الكلمات التعليمية، ينظف الضوضاء، ثم يستخدم التعلم الآلي لترجمة الكلمات والجمل على جهازك.'),
+    (Icons.psychology_alt_rounded, 'مدرب يتعلم من تقدمك', 'مراجعة شخصية لكل طالب', 'يراقب الكلمات الصعبة والأخطاء ويقترح قائمة مراجعة ذكية بدل دراسة كل الكلمات بنفس الطريقة.'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Column(children: [
+        Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: widget.onDone, child: const Text('تخطي'))),
+        Expanded(child: PageView.builder(
+          controller: controller,
+          itemCount: items.length,
+          onPageChanged: (v) => setState(() => page = v),
+          itemBuilder: (_, i) {
+            final item = items[i];
+            return Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(width: 128, height: 128, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(36)), child: Icon(item.$1, size: 68, color: Theme.of(context).colorScheme.primary)),
+                const SizedBox(height: 28),
+                Text(item.$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 31, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 10),
+                Text(item.$3, textAlign: TextAlign.center, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary)),
+                const SizedBox(height: 14),
+                Text(item.$4, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.7, color: Color(0xff64748b))),
+              ]),
+            );
+          },
+        )),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(items.length, (i) => AnimatedContainer(duration: const Duration(milliseconds: 220), margin: const EdgeInsets.all(4), width: i == page ? 24 : 8, height: 8, decoration: BoxDecoration(color: i == page ? Theme.of(context).colorScheme.primary : const Color(0xffcbd5e1), borderRadius: BorderRadius.circular(10))))),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: () {
+              if (page == items.length - 1) widget.onDone();
+              else controller.nextPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+            },
+            icon: Icon(page == items.length - 1 ? Icons.rocket_launch_rounded : Icons.arrow_back_rounded),
+            label: Text(page == items.length - 1 ? 'ابدأ مع قاموسي AI' : 'التالي'),
+          )),
+        ),
+      ]),
+    ),
+  );
 }
 
 class HomeShell extends StatefulWidget {
@@ -815,9 +1017,9 @@ class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (v) => setState(() => index = v),
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'البحث'),
-          NavigationDestination(icon: Icon(Icons.auto_stories_rounded), label: 'المنهاج'),
-          NavigationDestination(icon: Icon(Icons.extension_rounded), label: 'التعلم'),
+          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'AI بحث'),
+          NavigationDestination(icon: Icon(Icons.auto_stories_rounded), label: 'الصفوف'),
+          NavigationDestination(icon: Icon(Icons.extension_rounded), label: 'تدريب'),
           NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'المزيد'),
         ],
       ),
@@ -846,7 +1048,7 @@ class _SmartSearchPageState extends State<SmartSearchPage> {
   Widget build(BuildContext context) {
     final results = widget.store.smartSearch(query);
     return Scaffold(
-      appBar: AppBar(title: const Text('بحث ذكي')),
+      appBar: AppBar(title: const Text('بحث AI الذكي')),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
@@ -918,9 +1120,9 @@ class _SearchWelcome extends StatelessWidget {
       child: Column(mainAxisSize: MainAxisSize.min, children: [
         Icon(Icons.manage_search_rounded, size: 78, color: Theme.of(context).colorScheme.primary),
         const SizedBox(height: 16),
-        const Text('ابدأ بكتابة أول حرف', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
+        const Text('اسأل قاموسي AI عن أي كلمة', style: TextStyle(fontSize: 23, fontWeight: FontWeight.w900)),
         const SizedBox(height: 8),
-        const Text('تظهر الكلمات المطابقة فورًا مع كل حرف تكتبه. اضغط على أي كلمة لفتح المعنى والمثال والترجمة والنطق.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
+        const Text('اكتب بالعربية أو الإنجليزية. البحث الذكي يرتب التطابقات ويستطيع التقاط بعض أخطاء الكتابة، ثم يعرض المعنى والجملة والترجمة والنطق.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
       ]),
     ),
   );
@@ -932,7 +1134,7 @@ class CurriculumPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('المنهاج الأردني')),
+    appBar: AppBar(title: const Text('المفردات حسب الصف')),
     body: ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: grades.length,
@@ -943,7 +1145,7 @@ class CurriculumPage extends StatelessWidget {
           contentPadding: const EdgeInsets.all(16),
           leading: CircleAvatar(child: Text(g, style: const TextStyle(fontWeight: FontWeight.w900))),
           title: Text(gradeName(g), style: const TextStyle(fontWeight: FontWeight.w900)),
-          subtitle: Text(count == 0 ? 'جاهز لإضافة وحدات ودروس المنهاج' : '$count كلمة محفوظة'),
+          subtitle: Text(count == 0 ? 'جاهز لإضافة مفردات هذا الصف' : '$count كلمة لهذا الصف'),
           trailing: const Icon(Icons.chevron_left_rounded),
           onTap: () => push(context, GradeCurriculumPage(store: store, grade: g)),
         ));
@@ -970,7 +1172,7 @@ class GradeCurriculumPage extends StatelessWidget {
                 const SizedBox(height: 14),
                 const Text('المحتوى الحالي غير مصنف حسب الفصل والوحدة والدرس', textAlign: TextAlign.center, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
                 const SizedBox(height: 8),
-                const Text('عند استيراد ملفات المنهاج أو استخدام مختبر الكتاب ستظهر هنا الفصول ثم الوحدات والدروس تلقائيًا.', textAlign: TextAlign.center),
+                const Text('يمكنك استخدام المفردات العالمية الجاهزة أو استيراد كتابك الخاص عبر استوديو AI، وستظهر الوحدات والدروس تلقائيًا عندما تكون متوفرة.', textAlign: TextAlign.center),
                 if (words.isNotEmpty) ...[
                   const SizedBox(height: 18),
                   FilledButton.icon(onPressed: () => push(context, GradeWordsPage(store: store, grade: grade)), icon: const Icon(Icons.list_alt_rounded), label: Text('عرض ${words.length} كلمة الحالية')),
@@ -1028,15 +1230,24 @@ class LearnHubPage extends StatelessWidget {
   const LearnHubPage({super.key, required this.store});
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('التعلم والتمرين')),
+    appBar: AppBar(title: const Text('التدريب الذكي')),
     body: ListView(padding: const EdgeInsets.all(16), children: [
+      Card(child: ListTile(
+        contentPadding: const EdgeInsets.all(18),
+        leading: CircleAvatar(radius: 26, child: const Icon(Icons.auto_awesome_rounded)),
+        title: const Text('خطة AI اليومية', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 19)),
+        subtitle: Text(store.smartStudyWords.isEmpty ? 'ابدأ التعلم ليبني الذكاء خطتك الشخصية' : '${store.smartStudyWords.length} كلمة مرتبة حسب حاجتك للمراجعة'),
+        trailing: const Icon(Icons.chevron_left_rounded),
+        onTap: () => push(context, AdaptiveReviewPage(store: store)),
+      )),
+      const SizedBox(height: 8),
       Row(children: [
         Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'البطاقات', subtitle: 'تعلم كلمة كلمة', onTap: () => push(context, FlashCardsPage(store: store)))),
         const SizedBox(width: 12),
-        Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار ذكي', subtitle: 'اختبر فهمك', onTap: () => push(context, QuizSetupPage(store: store)))),
+        Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار AI متكيف', subtitle: 'يتكيف مع مستواك وأخطائك', onTap: () => push(context, QuizSetupPage(store: store)))),
       ]),
       Row(children: [
-        Expanded(child: QuickCard(icon: Icons.psychology_alt_rounded, title: 'الصعبة', subtitle: '${store.difficult.length} تحتاج مراجعة', onTap: () => push(context, DifficultPage(store: store)))),
+        Expanded(child: QuickCard(icon: Icons.psychology_alt_rounded, title: 'مراجعة AI', subtitle: '${store.smartStudyWords.length} كلمة مقترحة لك', onTap: () => push(context, DifficultPage(store: store)))),
         const SizedBox(width: 12),
         Expanded(child: QuickCard(icon: Icons.format_quote_rounded, title: 'الجمل', subtitle: 'جمل مع النطق', onTap: () => push(context, SentencesPage(store: store)))),
       ]),
@@ -1051,12 +1262,42 @@ class MorePage extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
     appBar: AppBar(title: const Text('المزيد')),
     body: ListView(padding: const EdgeInsets.all(16), children: [
-      SettingsTile(icon: Icons.auto_awesome_rounded, title: 'مختبر الكتاب', subtitle: 'رفع كتاب أو وحدة وتحويلها إلى قاموس منظم', onTap: () => push(context, BookLabPage(store: store))),
+      SettingsTile(icon: Icons.auto_awesome_rounded, title: 'استوديو AI للكتاب', subtitle: 'استخرج المفردات والمعاني والجمل من أي كتاب PDF', onTap: () => push(context, BookLabPage(store: store))),
       SettingsTile(icon: Icons.insights_rounded, title: 'التقدم والإحصائيات', subtitle: 'تابع الكلمات المتقنة والصعبة', onTap: () => push(context, StatsPage(store: store))),
       SettingsTile(icon: Icons.people_alt_rounded, title: 'ملفات الطلاب', subtitle: 'التبديل بين الطلاب', onTap: () => push(context, ProfilesPage(store: store))),
       SettingsTile(icon: Icons.settings_rounded, title: 'الإعدادات والملفات', subtitle: 'النطق والاستيراد والنسخ الاحتياطي', onTap: () => push(context, SettingsPage(store: store))),
     ]),
   );
+}
+
+
+class AdaptiveReviewPage extends StatelessWidget {
+  final Store store;
+  const AdaptiveReviewPage({super.key, required this.store});
+  @override
+  Widget build(BuildContext context) {
+    final words = store.smartStudyWords;
+    return Scaffold(
+      appBar: AppBar(title: const Text('خطة AI اليومية')),
+      body: words.isEmpty
+          ? const Center(child: Padding(padding: EdgeInsets.all(28), child: Text('ممتاز! لا توجد كلمات صعبة بعد. ابدأ اختبارًا أو بطاقات تعليمية ليبني المدرب الذكي خطة مناسبة لك.', textAlign: TextAlign.center)))
+          : ListView.builder(
+              padding: const EdgeInsets.all(16),
+              itemCount: words.length,
+              itemBuilder: (_, i) {
+                final w = words[i];
+                final wrong = store.wrongCounts['${w.id}'] ?? 0;
+                return Card(child: ListTile(
+                  leading: CircleAvatar(child: Text('${i + 1}')),
+                  title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 20)),
+                  subtitle: Text('${w.ar}${wrong > 0 ? ' • أخطاء سابقة: $wrong' : ' • مقترحة للمراجعة'}'),
+                  trailing: const Icon(Icons.auto_awesome_rounded),
+                  onTap: () => showWord(context, store, w, source: words, initialIndex: i),
+                ));
+              },
+            ),
+    );
+  }
 }
 
 class BookCandidate {
@@ -1217,11 +1458,7 @@ class _BookLabPageState extends State<BookLabPage> {
         }
       }
       final list = map.values.where((e) => e.frequency >= 2 || e.meaning.trim().isNotEmpty || (e.frequency == 1 && e.word.length >= 5 && e.exampleEn.isNotEmpty)).toList();
-      list.sort((a, b) {
-        final f = b.frequency.compareTo(a.frequency);
-        if (f != 0) return f;
-        return a.word.compareTo(b.word);
-      });
+      // Keep the extraction map's insertion order: this is the first appearance order in the PDF.
       setState(() { candidates = list; pagesRead = pages.length; });
       if (list.isNotEmpty) {
         await _autoFillMeanings(list);
@@ -1356,7 +1593,7 @@ class _BookLabPageState extends State<BookLabPage> {
   Widget build(BuildContext context) {
     final selectedCount = candidates.where((c) => c.selected).length;
     return Scaffold(
-      appBar: AppBar(title: const Text('مختبر الكتاب')),
+      appBar: AppBar(title: const Text('استوديو AI للكتاب')),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
@@ -1385,9 +1622,9 @@ class _BookLabPageState extends State<BookLabPage> {
               ? Center(child: Padding(padding: const EdgeInsets.all(28), child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Icon(Icons.auto_awesome_rounded, size: 78, color: Theme.of(context).colorScheme.primary),
                   const SizedBox(height: 14),
-                  const Text('حوّل الكتاب إلى قاموس', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+                  const Text('حوّل أي كتاب إلى قاموس بالذكاء الاصطناعي', style: TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
                   const SizedBox(height: 8),
-                  const Text('يقرأ PDF، يكتشف الوحدة والدرس، يستخرج الكلمات التعليمية ويستبعد الأسماء والأماكن والأرقام والحروف والرموز، ثم يعرض النتائج للمراجعة قبل الحفظ.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
+                  const Text('يحلل PDF، يكتشف بنية الكتاب، ينظف المفردات، ويستخدم التعلم الآلي للترجمة واقتراح أمثلة قبل أن تراجعها وتحفظها.', textAlign: TextAlign.center, style: TextStyle(height: 1.5, color: Color(0xff64748b))),
                 ])))
               : ListView.builder(
                   padding: const EdgeInsets.fromLTRB(16, 0, 16, 90),
@@ -1426,7 +1663,7 @@ class HomePage extends StatelessWidget {
     final completion = store.words.isEmpty ? 0.0 : store.mastered.length / store.words.length;
     return CustomScrollView(
       slivers: [
-        const SliverAppBar(title: Text('القاموس المدرسي الأردني'), floating: true),
+        const SliverAppBar(title: Text('قاموسي AI'), floating: true),
         SliverPadding(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 24),
           sliver: SliverList.list(children: [
@@ -1456,10 +1693,10 @@ class HomePage extends StatelessWidget {
             Row(children: [
               Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'بطاقات سريعة', subtitle: 'تعلم مع النطق', onTap: () => push(context, FlashCardsPage(store: store)))),
               const SizedBox(width: 12),
-              Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار ذكي', subtitle: 'اختبر فهمك', onTap: () => push(context, QuizSetupPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار AI متكيف', subtitle: 'يتكيف مع مستواك وأخطائك', onTap: () => push(context, QuizSetupPage(store: store)))),
             ]),
             Row(children: [
-              Expanded(child: QuickCard(icon: Icons.auto_awesome_rounded, title: 'مختبر الكتاب', subtitle: 'ارفع PDF وحوله لقاموس', onTap: () => push(context, BookLabPage(store: store)))),
+              Expanded(child: QuickCard(icon: Icons.auto_awesome_rounded, title: 'استوديو AI للكتاب', subtitle: 'ارفع PDF وحوله لقاموس', onTap: () => push(context, BookLabPage(store: store)))),
               const SizedBox(width: 12),
               Expanded(child: QuickCard(icon: Icons.insights_rounded, title: 'تقدمي', subtitle: '${store.mastered.length} كلمة متقنة', onTap: () => push(context, StatsPage(store: store)))),
             ]),
@@ -1476,23 +1713,45 @@ class QuickCard extends StatelessWidget {
   final String subtitle;
   final VoidCallback onTap;
   const QuickCard({super.key, required this.icon, required this.title, required this.subtitle, required this.onTap});
+
+  Color _accent() {
+    const colors = [
+      Color(0xff2563eb), Color(0xff7c3aed), Color(0xffdb2777),
+      Color(0xffea580c), Color(0xff059669), Color(0xff0891b2),
+    ];
+    return colors[icon.codePoint.abs() % colors.length];
+  }
+
   @override
-  Widget build(BuildContext context) => Card(
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(24),
-          child: Padding(
-            padding: const EdgeInsets.all(18),
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(icon)),
-              const SizedBox(height: 15),
-              Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800)),
-              const SizedBox(height: 4),
-              Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xff6f7d94))),
-            ]),
-          ),
+  Widget build(BuildContext context) {
+    final accent = _accent();
+    return Card(
+      color: Color.alphaBlend(accent.withOpacity(.075), Colors.white),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(color: accent.withOpacity(.20)),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Container(
+              width: 46,
+              height: 46,
+              decoration: BoxDecoration(color: accent.withOpacity(.14), borderRadius: BorderRadius.circular(15)),
+              child: Icon(icon, color: accent),
+            ),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 4),
+            Text(subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Color(0xff64748b), height: 1.25)),
+          ]),
         ),
-      );
+      ),
+    );
+  }
 }
 
 class DictionaryPage extends StatefulWidget {
@@ -1618,6 +1877,18 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
   bool showMeaning = false;
   bool showExample = false;
 
+  @override
+  void initState() {
+    super.initState();
+    index = widget.store.lastIndex(grade);
+    WidgetsBinding.instance.addPostFrameCallback((_) => _markCurrent());
+  }
+
+  void _markCurrent() {
+    final list = widget.store.byGrade(grade);
+    if (list.isNotEmpty && index < list.length) widget.store.markStudied(list[index]);
+  }
+
   void move(int delta, int length) {
     if (length == 0) return;
     setState(() {
@@ -1627,12 +1898,17 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
       showExample = false;
     });
     widget.store.saveLastIndex(grade, index);
+    _markCurrent();
   }
 
   Future<void> pronounce(BuildContext context, String value) async {
+    final list = widget.store.byGrade(grade);
+    if (list.isNotEmpty && index < list.length) await widget.store.markStudied(list[index]);
     final ok = await widget.store.speak(value);
     if (!ok && context.mounted) snack(context, 'تعذر تشغيل النطق. فعّل محرك تحويل النص إلى كلام الإنجليزي من إعدادات الهاتف');
   }
+
+  Widget _actionButton({required Widget child}) => SizedBox(height: 46, child: child);
 
   @override
   Widget build(BuildContext context) {
@@ -1641,23 +1917,31 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
     final word = list.isEmpty ? null : list[index];
     final hasExample = word != null && (word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty);
     return Scaffold(
-      appBar: AppBar(title: const Text('البطاقات التعليمية')),
+      appBar: AppBar(title: const Text('البطاقات التعليمية'), toolbarHeight: 52),
       body: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
         child: Column(children: [
-          DropdownButtonFormField<String>(
-            initialValue: grade,
-            items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
-            onChanged: (value) => setState(() {
-              grade = value ?? '1';
-              index = widget.store.lastIndex(grade);
-              showMeaning = false;
-              showExample = false;
-            }),
+          SizedBox(
+            height: 52,
+            child: DropdownButtonFormField<String>(
+              initialValue: grade,
+              isExpanded: true,
+              items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
+              onChanged: (value) {
+                setState(() {
+                  grade = value ?? '1';
+                  index = widget.store.lastIndex(grade);
+                  showMeaning = false;
+                  showExample = false;
+                });
+                _markCurrent();
+              },
+              decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+            ),
           ),
-          const SizedBox(height: 12),
-          if (word != null) Text('${index + 1} / ${list.length}', style: const TextStyle(fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
+          if (word != null) Text('${index + 1} / ${list.length}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+          const SizedBox(height: 4),
           Expanded(
             child: word == null
                 ? const Center(child: Text('لا توجد كلمات في هذا الصف'))
@@ -1667,77 +1951,94 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
                       if (v < -100) move(1, list.length);
                       if (v > 100) move(-1, list.length);
                     },
-                    child: Card(
-                      child: ListView(
-                        padding: const EdgeInsets.all(24),
-                        children: [
-                          const SizedBox(height: 22),
-                          Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 42, fontWeight: FontWeight.w900)),
-                          const SizedBox(height: 24),
-                          FilledButton.tonalIcon(
-                            onPressed: () => pronounce(context, word.en),
-                            icon: const Icon(Icons.volume_up_rounded),
-                            label: const Text('لفظ الكلمة'),
+                    child: LayoutBuilder(builder: (context, constraints) {
+                      final compact = constraints.maxHeight < 430;
+                      final wordSize = compact ? 34.0 : 40.0;
+                      final innerWidth = max(240.0, constraints.maxWidth - 24);
+                      return Card(
+                        margin: EdgeInsets.zero,
+                        child: Padding(
+                          padding: EdgeInsets.all(compact ? 10 : 14),
+                          child: Center(
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.center,
+                              child: SizedBox(
+                                width: innerWidth,
+                                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                  Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: TextStyle(fontSize: wordSize, fontWeight: FontWeight.w900)),
+                                  const SizedBox(height: 3),
+                                  Text(gradeName(word.grade), style: const TextStyle(fontSize: 12, color: Color(0xff64748b), fontWeight: FontWeight.w700)),
+                                  SizedBox(height: compact ? 7 : 10),
+                                  SizedBox(width: double.infinity, height: 44, child: FilledButton.tonalIcon(
+                                    onPressed: () => pronounce(context, word.en),
+                                    icon: const Icon(Icons.volume_up_rounded),
+                                    label: const Text('لفظ الكلمة'),
+                                  )),
+                                  if (hasExample) ...[
+                                    const SizedBox(height: 7),
+                                    SizedBox(width: double.infinity, height: 44, child: OutlinedButton.icon(
+                                      onPressed: () => setState(() => showExample = !showExample),
+                                      icon: const Icon(Icons.format_quote_rounded),
+                                      label: Text(showExample ? 'إخفاء مثال الجملة' : 'إظهار مثال الجملة'),
+                                    )),
+                                    if (showExample) Container(
+                                      width: double.infinity,
+                                      margin: const EdgeInsets.only(top: 7),
+                                      padding: const EdgeInsets.all(10),
+                                      decoration: BoxDecoration(color: const Color(0xfff3e8ff), borderRadius: BorderRadius.circular(16)),
+                                      child: Column(mainAxisSize: MainAxisSize.min, children: [
+                                        if (word.exampleEn.isNotEmpty) ...[
+                                          Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 14 : 16, fontWeight: FontWeight.w800)),
+                                          const SizedBox(height: 5),
+                                          SizedBox(height: 38, child: FilledButton.tonalIcon(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded, size: 18), label: const Text('لفظ الجملة'))),
+                                        ],
+                                        if (word.exampleAr.isNotEmpty) ...[
+                                          const SizedBox(height: 5),
+                                          Text(word.exampleAr, textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 13 : 15, height: 1.25)),
+                                        ],
+                                      ]),
+                                    ),
+                                  ],
+                                  const SizedBox(height: 7),
+                                  SizedBox(width: double.infinity, height: 44, child: FilledButton.icon(
+                                    onPressed: () => setState(() => showMeaning = !showMeaning),
+                                    icon: const Icon(Icons.translate_rounded),
+                                    label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'),
+                                  )),
+                                  if (showMeaning) Container(
+                                    width: double.infinity,
+                                    margin: const EdgeInsets.only(top: 7),
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                    decoration: BoxDecoration(color: const Color(0xffdbeafe), borderRadius: BorderRadius.circular(16)),
+                                    child: Text(word.ar, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: compact ? 22 : 27, fontWeight: FontWeight.w900)),
+                                  ),
+                                ]),
+                              ),
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          if (hasExample) OutlinedButton.icon(
-                            onPressed: () => setState(() => showExample = !showExample),
-                            icon: const Icon(Icons.format_quote_rounded),
-                            label: Text(showExample ? 'إخفاء مثال الجملة' : 'إظهار مثال الجملة'),
-                          ),
-                          if (hasExample) const SizedBox(height: 12),
-                          FilledButton.icon(
-                            onPressed: () => setState(() => showMeaning = !showMeaning),
-                            icon: const Icon(Icons.translate_rounded),
-                            label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'),
-                          ),
-                          if (showMeaning) Padding(
-                            padding: const EdgeInsets.only(top: 24),
-                            child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w900)),
-                          ),
-                          if (showExample) Container(
-                            margin: const EdgeInsets.only(top: 20),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(color: Theme.of(context).colorScheme.secondaryContainer, borderRadius: BorderRadius.circular(18)),
-                            child: Column(children: [
-                              if (word.exampleEn.isNotEmpty) ...[
-                                const Text('الجملة الإنجليزية', style: TextStyle(fontWeight: FontWeight.w800)),
-                                const SizedBox(height: 8),
-                                Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
-                                const SizedBox(height: 8),
-                                FilledButton.tonalIcon(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded), label: const Text('لفظ الجملة')),
-                              ],
-                              if (word.exampleEn.isEmpty && word.exampleAr.isNotEmpty) ...[
-                                const Text('الجملة الإنجليزية غير محفوظة لهذه الكلمة', textAlign: TextAlign.center, style: TextStyle(fontWeight: FontWeight.w800)),
-                                const SizedBox(height: 8),
-                                const Text('أعد استيراد ملف Excel نفسه مرة واحدة لتحديث الجملة الإنجليزية دون تكرار الكلمة.', textAlign: TextAlign.center),
-                              ],
-                              if (word.exampleAr.isNotEmpty) ...[
-                                const SizedBox(height: 14),
-                                const Divider(),
-                                const SizedBox(height: 8),
-                                const Text('ترجمة الجملة', style: TextStyle(fontWeight: FontWeight.w800)),
-                                const SizedBox(height: 6),
-                                Text(word.exampleAr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 17)),
-                              ],
-                            ]),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    }),
                   ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: word == null ? null : () => move(-1, list.length), icon: const Icon(Icons.arrow_forward_rounded), label: const Text('السابق'))),
-            const SizedBox(width: 10),
-            Expanded(child: FilledButton.icon(onPressed: word == null ? null : () => move(1, list.length), icon: const Icon(Icons.arrow_back_rounded), label: const Text('التالي'))),
+            Expanded(child: _actionButton(child: OutlinedButton.icon(onPressed: word == null ? null : () => move(-1, list.length), icon: const Icon(Icons.arrow_forward_rounded, size: 19), label: const Text('السابق')))),
+            const SizedBox(width: 7),
+            Expanded(child: _actionButton(child: FilledButton.icon(onPressed: word == null ? null : () => move(1, list.length), icon: const Icon(Icons.arrow_back_rounded, size: 19), label: const Text('التالي')))),
           ]),
-          const SizedBox(height: 8),
+          const SizedBox(height: 5),
           Row(children: [
-            Expanded(child: OutlinedButton.icon(onPressed: word == null ? null : () async { await widget.store.answer(word, false); move(1, list.length); }, icon: const Icon(Icons.refresh), label: const Text('تحتاج مراجعة'))),
-            const SizedBox(width: 10),
-            Expanded(child: FilledButton.icon(onPressed: word == null ? null : () async { await widget.store.answer(word, true); move(1, list.length); }, icon: const Icon(Icons.check), label: const Text('أتقنتها'))),
+            Expanded(child: _actionButton(child: OutlinedButton.icon(
+              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xffb45309), side: const BorderSide(color: Color(0xfff59e0b))),
+              onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: false); move(1, list.length); },
+              icon: const Icon(Icons.refresh_rounded, size: 19), label: const Text('تحتاج مراجعة')))),
+            const SizedBox(width: 7),
+            Expanded(child: _actionButton(child: FilledButton.icon(
+              style: FilledButton.styleFrom(backgroundColor: const Color(0xff059669), foregroundColor: Colors.white),
+              onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: true); move(1, list.length); },
+              icon: const Icon(Icons.check_rounded, size: 19), label: const Text('أتقنتها')))),
           ]),
         ]),
       ),
@@ -1745,43 +2046,263 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
   }
 }
 
-class QuizSetupPage extends StatelessWidget {
+class QuizSetupPage extends StatefulWidget {
   final Store store;
   const QuizSetupPage({super.key, required this.store});
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('اختر الصف')),
-        body: ListView(padding: const EdgeInsets.all(16), children: grades.map((g) => Card(child: ListTile(title: Text(gradeName(g)), subtitle: Text('${store.byGrade(g).length} كلمة'), trailing: const Icon(Icons.play_circle_fill), onTap: () => push(context, QuizPage(store: store, grade: g))))).toList()),
-      );
+  State<QuizSetupPage> createState() => _QuizSetupPageState();
+}
+
+class _QuizSetupPageState extends State<QuizSetupPage> {
+  String grade = '1';
+  String mode = 'random';
+  String unit = '';
+  int count = 20;
+
+  List<String> get units => widget.store.byGrade(grade).map((w) => w.unit.trim()).where((v) => v.isNotEmpty).toSet().toList()..sort();
+
+  int _pageNumber(WordItem w) => int.tryParse(RegExp(r'\d+').firstMatch(w.sourcePage)?.group(0) ?? '') ?? 999999;
+
+  List<WordItem> _questions() {
+    List<WordItem> list;
+    switch (mode) {
+      case 'comprehensive':
+        list = List<WordItem>.from(widget.store.words)..sort((a, b) {
+          final g = (int.tryParse(a.grade) ?? 99).compareTo(int.tryParse(b.grade) ?? 99);
+          return g != 0 ? g : a.id.compareTo(b.id);
+        });
+        break;
+      case 'pdf':
+        list = widget.store.byGrade(grade).where((w) => w.sourcePage.trim().isNotEmpty).toList();
+        list.sort((a, b) {
+          final p = _pageNumber(a).compareTo(_pageNumber(b));
+          return p != 0 ? p : a.id.compareTo(b.id);
+        });
+        break;
+      case 'unit':
+        list = widget.store.byGrade(grade).where((w) => w.unit == unit).toList();
+        break;
+      case 'easy':
+        list = List<WordItem>.from(widget.store.byGrade(grade));
+        list.sort((a, b) => widget.store.difficultyScore(a).compareTo(widget.store.difficultyScore(b)));
+        break;
+      case 'studied':
+        list = widget.store.byGrade(grade).where((w) => widget.store.studied.contains('${w.id}')).toList();
+        break;
+      default:
+        list = List<WordItem>.from(widget.store.byGrade(grade))..shuffle();
+    }
+    if (count > 0 && list.length > count) return list.take(count).toList(growable: false);
+    return list;
+  }
+
+  String get modeTitle => const {
+    'random': 'عشوائي',
+    'pdf': 'حسب ترتيب PDF',
+    'unit': 'حسب الوحدة',
+    'easy': 'من الأسهل إلى الأصعب',
+    'studied': 'الكلمات التي درستها',
+    'comprehensive': 'شامل كل الصفوف',
+  }[mode] ?? 'اختبار';
+
+  void _start() {
+    if (mode == 'unit' && unit.isEmpty) {
+      snack(context, 'اختر الوحدة أولاً');
+      return;
+    }
+    final q = _questions();
+    if (q.isEmpty) {
+      final msg = mode == 'pdf' ? 'لا توجد كلمات مرتبطة بصفحات PDF في هذا الصف بعد' : mode == 'studied' ? 'افتح بعض الكلمات وادرسها أولاً' : 'لا توجد كلمات مناسبة لهذا الاختبار';
+      snack(context, msg);
+      return;
+    }
+    push(context, QuizPage(store: widget.store, questions: q, title: modeTitle));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final unitList = units;
+    if (unit.isNotEmpty && !unitList.contains(unit)) unit = '';
+    return Scaffold(
+      appBar: AppBar(title: const Text('إعداد الاختبار')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(colors: [Color(0xff2563eb), Color(0xff7c3aed)]),
+            borderRadius: BorderRadius.circular(24),
+          ),
+          child: const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Icon(Icons.quiz_rounded, color: Colors.white, size: 36),
+            SizedBox(height: 8),
+            Text('اختبار على طريقتك', style: TextStyle(color: Colors.white, fontSize: 23, fontWeight: FontWeight.w900)),
+            SizedBox(height: 5),
+            Text('اختر ترتيب الأسئلة والمحتوى قبل أن تبدأ.', style: TextStyle(color: Colors.white, height: 1.4)),
+          ]),
+        ),
+        const SizedBox(height: 14),
+        if (mode != 'comprehensive') DropdownButtonFormField<String>(
+          value: grade,
+          items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
+          onChanged: (v) => setState(() { grade = v ?? grade; unit = ''; }),
+          decoration: const InputDecoration(labelText: 'الصف'),
+        ),
+        if (mode != 'comprehensive') const SizedBox(height: 10),
+        DropdownButtonFormField<String>(
+          value: mode,
+          items: const [
+            DropdownMenuItem(value: 'random', child: Text('عشوائي')),
+            DropdownMenuItem(value: 'pdf', child: Text('حسب ترتيب ظهور الكلمات في PDF')),
+            DropdownMenuItem(value: 'unit', child: Text('حسب الوحدة')),
+            DropdownMenuItem(value: 'easy', child: Text('حسب السهولة')),
+            DropdownMenuItem(value: 'studied', child: Text('حسب الكلمات المدروسة على الجهاز')),
+            DropdownMenuItem(value: 'comprehensive', child: Text('شامل - جميع الصفوف')),
+          ],
+          onChanged: (v) => setState(() { mode = v ?? mode; unit = ''; }),
+          decoration: const InputDecoration(labelText: 'نوع الاختبار'),
+        ),
+        if (mode == 'unit') ...[
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: unit.isEmpty ? null : unit,
+            items: unitList.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
+            onChanged: (v) => setState(() => unit = v ?? ''),
+            decoration: const InputDecoration(labelText: 'الوحدة'),
+          ),
+        ],
+        const SizedBox(height: 10),
+        DropdownButtonFormField<int>(
+          value: count,
+          items: const [
+            DropdownMenuItem(value: 10, child: Text('10 أسئلة')),
+            DropdownMenuItem(value: 20, child: Text('20 سؤالاً')),
+            DropdownMenuItem(value: 40, child: Text('40 سؤالاً')),
+            DropdownMenuItem(value: 0, child: Text('كل الكلمات المتاحة')),
+          ],
+          onChanged: (v) => setState(() => count = v ?? 20),
+          decoration: const InputDecoration(labelText: 'عدد الأسئلة'),
+        ),
+        const SizedBox(height: 18),
+        FilledButton.icon(onPressed: _start, icon: const Icon(Icons.play_arrow_rounded), label: Text('ابدأ • $modeTitle')),
+        if (mode == 'pdf') const Padding(padding: EdgeInsets.only(top: 10), child: Text('يحافظ على ترتيب الصفحات وترتيب الحفظ من ملفات PDF التي استخرجتها داخل التطبيق.', textAlign: TextAlign.center, style: TextStyle(color: Color(0xff64748b)))),
+      ]),
+    );
+  }
 }
 
 class QuizPage extends StatefulWidget {
   final Store store;
-  final String grade;
-  const QuizPage({super.key, required this.store, required this.grade});
+  final List<WordItem> questions;
+  final String title;
+  const QuizPage({super.key, required this.store, required this.questions, required this.title});
   @override
   State<QuizPage> createState() => _QuizPageState();
 }
 
 class _QuizPageState extends State<QuizPage> {
-  late List<WordItem> questions;
   int i = 0, score = 0;
-  @override
-  void initState() { super.initState(); questions = [...widget.store.byGrade(widget.grade)]..shuffle(); questions = questions.take(20).toList(); }
+  final Set<int> wrongIds = {};
+
+  List<String> _options(WordItem w) {
+    final choices = <String>{w.ar};
+    final sameGrade = widget.store.byGrade(w.grade).where((x) => x.ar != w.ar).toList();
+    final pool = sameGrade.isNotEmpty ? sameGrade : widget.store.words.where((x) => x.ar != w.ar).toList();
+    pool.shuffle();
+    for (final item in pool) {
+      choices.add(item.ar);
+      if (choices.length >= 4) break;
+    }
+    return choices.toList()..shuffle();
+  }
+
+  Widget _result() {
+    final wrong = widget.questions.where((w) => wrongIds.contains(w.id)).toList(growable: false);
+    final pct = widget.questions.isEmpty ? 0 : ((score / widget.questions.length) * 100).round();
+    return ListView(padding: const EdgeInsets.all(16), children: [
+      Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(gradient: const LinearGradient(colors: [Color(0xff059669), Color(0xff2563eb)]), borderRadius: BorderRadius.circular(28)),
+        child: Column(children: [
+          const Icon(Icons.emoji_events_rounded, size: 64, color: Colors.white),
+          const SizedBox(height: 8),
+          Text('$score / ${widget.questions.length}', style: const TextStyle(color: Colors.white, fontSize: 36, fontWeight: FontWeight.w900)),
+          Text('$pct%', style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+        ]),
+      ),
+      const SizedBox(height: 16),
+      if (wrong.isEmpty)
+        const Card(child: Padding(padding: EdgeInsets.all(22), child: Text('ممتاز! لم تخطئ في أي كلمة.', textAlign: TextAlign.center, style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900))))
+      else ...[
+        Text('تدرّب على الكلمات التي أخطأت فيها (${wrong.length})', style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w900)),
+        const SizedBox(height: 8),
+        ...wrong.map((w) => Card(
+          color: const Color(0xfffffbeb),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(children: [
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                title: Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 21, fontWeight: FontWeight.w900)),
+                subtitle: Text('${w.ar} • أخطاء سابقة: ${widget.store.wrongCounts['${w.id}'] ?? 0}'),
+                trailing: IconButton(icon: const Icon(Icons.school_rounded), tooltip: 'تدريب على الكلمة', onPressed: () => showWord(context, widget.store, w, source: wrong, initialIndex: wrong.indexOf(w))),
+              ),
+              Row(children: [
+                Expanded(child: OutlinedButton.icon(
+                  onPressed: () async { await widget.store.setReviewState(w, masteredNow: false); if (mounted) setState(() {}); },
+                  icon: const Icon(Icons.refresh_rounded), label: const Text('تحتاج مراجعة'))),
+                const SizedBox(width: 8),
+                Expanded(child: FilledButton.icon(
+                  style: FilledButton.styleFrom(backgroundColor: const Color(0xff059669), foregroundColor: Colors.white),
+                  onPressed: () async { await widget.store.setReviewState(w, masteredNow: true); if (mounted) setState(() {}); },
+                  icon: const Icon(Icons.check_rounded), label: const Text('أتقنتها'))),
+              ]),
+            ]),
+          ),
+        )),
+      ],
+      const SizedBox(height: 16),
+      FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.done_all_rounded), label: const Text('إنهاء الاختبار')),
+    ]);
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (questions.isEmpty) return Scaffold(appBar: AppBar(), body: const Center(child: Text('لا توجد كلمات')));
-    if (i >= questions.length) return Scaffold(appBar: AppBar(title: const Text('النتيجة')), body: Center(child: Card(child: Padding(padding: const EdgeInsets.all(30), child: Column(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.emoji_events, size: 70, color: Colors.amber), Text('$score / ${questions.length}', style: const TextStyle(fontSize: 34, fontWeight: FontWeight.w900)), FilledButton(onPressed: () => Navigator.pop(context), child: const Text('إنهاء'))])))));
-    final w = questions[i];
-    final choices = <String>{w.ar};
-    final pool = widget.store.byGrade(widget.grade);
-    while (choices.length < min(4, pool.length)) choices.add(pool[Random().nextInt(pool.length)].ar);
-    final options = choices.toList()..shuffle();
+    if (widget.questions.isEmpty) return Scaffold(appBar: AppBar(), body: const Center(child: Text('لا توجد كلمات')));
+    if (i >= widget.questions.length) return Scaffold(appBar: AppBar(title: const Text('نتيجة الاختبار')), body: _result());
+    final w = widget.questions[i];
+    final options = _options(w);
     return Scaffold(
-      appBar: AppBar(title: Text('السؤال ${i + 1} من ${questions.length}')),
-      body: ListView(padding: const EdgeInsets.all(18), children: [
-        Card(child: Padding(padding: const EdgeInsets.all(28), child: Column(children: [Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w900)), const SizedBox(height: 14), FilledButton.tonalIcon(onPressed: () => widget.store.speak(w.en), icon: const Icon(Icons.volume_up_rounded), label: const Text('اسمع الكلمة'))]))),
-        ...options.map((o) => Card(child: ListTile(title: Text(o), onTap: () async { final ok = o == w.ar; await widget.store.answer(w, ok); if (ok) score++; if (mounted) setState(() => i++); }))),
+      appBar: AppBar(title: Text('${widget.title} • ${i + 1}/${widget.questions.length}')),
+      body: ListView(padding: const EdgeInsets.all(16), children: [
+        LinearProgressIndicator(value: (i + 1) / widget.questions.length, minHeight: 8, borderRadius: BorderRadius.circular(10)),
+        const SizedBox(height: 14),
+        Card(
+          color: const Color(0xffeff6ff),
+          child: Padding(padding: const EdgeInsets.all(24), child: Column(children: [
+            Text(w.en, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 35, fontWeight: FontWeight.w900)),
+            const SizedBox(height: 12),
+            FilledButton.tonalIcon(onPressed: () => widget.store.speak(w.en), icon: const Icon(Icons.volume_up_rounded), label: const Text('اسمع الكلمة')),
+          ])),
+        ),
+        const SizedBox(height: 6),
+        ...options.asMap().entries.map((entry) {
+          final palette = [const Color(0xffeff6ff), const Color(0xfff5f3ff), const Color(0xfffdf2f8), const Color(0xffecfdf5)];
+          final o = entry.value;
+          return Card(
+            color: palette[entry.key % palette.length],
+            child: ListTile(
+              contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+              title: Text(o, style: const TextStyle(fontWeight: FontWeight.w800)),
+              trailing: const Icon(Icons.chevron_left_rounded),
+              onTap: () async {
+                final ok = o == w.ar;
+                await widget.store.answer(w, ok);
+                if (ok) score++; else wrongIds.add(w.id);
+                if (mounted) setState(() => i++);
+              },
+            ),
+          );
+        }),
       ]),
     );
   }
@@ -2038,7 +2559,7 @@ class SettingsPage extends StatelessWidget {
           SettingsTile(icon: Icons.restore_rounded, title: 'استعادة نسخة من الجهاز', subtitle: 'بعد إعادة التثبيت اختر ملف qamoosi_backup_latest.json أو أي نسخة سابقة', onTap: () => restoreDialog(context)),
           SettingsTile(icon: Icons.table_view_outlined, title: 'تصدير ملف Excel/CSV', subtitle: 'للمراجعة أو الفتح على الكمبيوتر', onTap: () async { try { await store.exportCsv(); } catch (e) { if (context.mounted) snack(context, 'تعذر التصدير: $e'); } }),
           const SectionTitle('حول التطبيق'),
-          const SettingsTile(icon: Icons.info_outline, title: 'القاموس المدرسي الأردني', subtitle: 'الإصدار $appVersion • يعمل دون إنترنت'),
+          const SettingsTile(icon: Icons.info_outline, title: 'قاموسي AI', subtitle: 'الإصدار $appVersion • يعمل دون إنترنت'),
           const Padding(padding: EdgeInsets.all(12), child: Text('نصيحة: أنشئ نسخة احتياطية دورياً واحفظها في Google Drive أو أي مكان آمن.', style: TextStyle(color: Color(0xff6f7d94)))),
         ]),
       );
@@ -2057,10 +2578,26 @@ class SettingsTile extends StatelessWidget {
   final VoidCallback? onTap;
   const SettingsTile({super.key, required this.icon, required this.title, required this.subtitle, this.onTap});
   @override
-  Widget build(BuildContext context) => Card(child: ListTile(contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7), leading: CircleAvatar(backgroundColor: Theme.of(context).colorScheme.primaryContainer, child: Icon(icon)), title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)), subtitle: Text(subtitle), trailing: onTap == null ? null : const Icon(Icons.chevron_left), onTap: onTap));
+  Widget build(BuildContext context) {
+    const colors = [Color(0xff2563eb), Color(0xff7c3aed), Color(0xffdb2777), Color(0xffea580c), Color(0xff059669), Color(0xff0891b2)];
+    final accent = colors[icon.codePoint.abs() % colors.length];
+    return Card(
+      color: Color.alphaBlend(accent.withOpacity(.055), Colors.white),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22), side: BorderSide(color: accent.withOpacity(.17))),
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        leading: Container(width: 44, height: 44, decoration: BoxDecoration(color: accent.withOpacity(.14), borderRadius: BorderRadius.circular(14)), child: Icon(icon, color: accent)),
+        title: Text(title, style: const TextStyle(fontWeight: FontWeight.w900)),
+        subtitle: Text(subtitle),
+        trailing: onTap == null ? null : Icon(Icons.chevron_left, color: accent),
+        onTap: onTap,
+      ),
+    );
+  }
 }
 
 void showWord(BuildContext context, Store store, WordItem word, {List<WordItem>? source, int? initialIndex}) {
+  store.markStudied(word);
   final list = (source == null || source.isEmpty) ? store.byGrade(word.grade) : source;
   var index = initialIndex ?? list.indexWhere((item) => item.id == word.id);
   if (index < 0) index = 0;

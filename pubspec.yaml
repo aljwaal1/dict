@@ -1,7 +1,7 @@
 name: qamoosi_school
 description: قاموسي AI - القاموس الذكي للطلاب العرب لتعلم الإنجليزية بالمفردات والجمل والنطق والتعلم الآلي.
 publish_to: 'none'
-version: 3.3.0+28
+version: 3.4.1+30
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
