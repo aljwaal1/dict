@@ -40,6 +40,9 @@ jobs:
           channel: stable
           cache: true
 
+      - name: Remove historical duplicate insertions
+        run: python3 tool/cleanup_clean_source_v341.py
+
       - name: Prepare Android
         shell: bash
         run: |
@@ -75,6 +78,21 @@ jobs:
           path: release/qamoosi-ai-v3.4.1-clean-universal.apk
           if-no-files-found: error
           retention-days: 30
+
+      - name: Persist cleaned final source
+        if: github.event_name != 'pull_request'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart
+          if git diff --cached --quiet; then
+            echo "Clean source already committed"
+          else
+            git commit -m "Persist cleaned Qamoosi AI v3.4.1 source"
+            git pull --rebase origin qamoosi-ai-clean-v341 || true
+            git push origin HEAD:qamoosi-ai-clean-v341
+          fi
 
       - name: Publish GitHub Release
         if: github.event_name != 'pull_request'
