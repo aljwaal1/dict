@@ -335,6 +335,37 @@ class Store extends ChangeNotifier {
     return ranked.where((w) => score(w) > 0).take(30).toList(growable: false);
   }
 
+  int _editDistance(String a, String b) {
+    if (a == b) return 0;
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    var prev = List<int>.generate(b.length + 1, (i) => i);
+    for (var i = 1; i <= a.length; i++) {
+      final cur = List<int>.filled(b.length + 1, 0);
+      cur[0] = i;
+      for (var j = 1; j <= b.length; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        cur[j] = min(min(cur[j - 1] + 1, prev[j] + 1), prev[j - 1] + cost);
+      }
+      prev = cur;
+    }
+    return prev[b.length];
+  }
+
+  List<WordItem> get smartStudyWords {
+    final ranked = List<WordItem>.from(words);
+    int score(WordItem w) {
+      final id = '${w.id}';
+      var value = (wrongCounts[id] ?? 0) * 10;
+      if (difficult.contains(id)) value += 20;
+      if (!mastered.contains(id)) value += 5;
+      if (w.exampleEn.isNotEmpty && w.exampleAr.isNotEmpty) value += 2;
+      return value;
+    }
+    ranked.sort((a, b) => score(b).compareTo(score(a)));
+    return ranked.where((w) => score(w) > 0).take(30).toList(growable: false);
+  }
+
   List<WordItem> smartSearch(String value) {
     final q = value.trim().toLowerCase();
     if (q.isEmpty) return const [];
@@ -882,6 +913,7 @@ class _AppBootstrapState extends State<AppBootstrap> {
   final store = Store();
   bool ready = false;
   bool introDone = false;
+  bool introDone = false;
 
   @override
   void initState() {
@@ -929,6 +961,66 @@ class _AppBootstrapState extends State<AppBootstrap> {
     }
     return AnimatedBuilder(animation: store, builder: (_, __) => HomeShell(store: store));
   }
+}
+
+
+class QamoosiAiOnboarding extends StatefulWidget {
+  final VoidCallback onDone;
+  const QamoosiAiOnboarding({super.key, required this.onDone});
+  @override
+  State<QamoosiAiOnboarding> createState() => _QamoosiAiOnboardingState();
+}
+
+class _QamoosiAiOnboardingState extends State<QamoosiAiOnboarding> {
+  final controller = PageController();
+  int page = 0;
+  final items = const [
+    (Icons.auto_awesome_rounded, 'قاموسي AI', 'القاموس الذكي للطلاب العرب', 'تعلّم الإنجليزية من كلمات مناسبة لصفك مع المعنى والجملة والترجمة والنطق.'),
+    (Icons.manage_search_rounded, 'بحث يفهم أخطاء الكتابة', 'اكتب بالعربي أو الإنجليزي', 'البحث الذكي يرتب النتائج ويقترح الكلمات القريبة حتى عند وجود خطأ بسيط في الكتابة.'),
+    (Icons.picture_as_pdf_rounded, 'استوديو AI للكتاب', 'حوّل أي PDF إلى مفردات', 'يستخرج الكلمات التعليمية، ينظف الضوضاء، ثم يستخدم التعلم الآلي لترجمة الكلمات والجمل على جهازك.'),
+    (Icons.psychology_alt_rounded, 'مدرب يتعلم من تقدمك', 'مراجعة شخصية لكل طالب', 'يراقب الكلمات الصعبة والأخطاء ويقترح قائمة مراجعة ذكية بدل دراسة كل الكلمات بنفس الطريقة.'),
+  ];
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Column(children: [
+        Align(alignment: Alignment.centerLeft, child: TextButton(onPressed: widget.onDone, child: const Text('تخطي'))),
+        Expanded(child: PageView.builder(
+          controller: controller,
+          itemCount: items.length,
+          onPageChanged: (v) => setState(() => page = v),
+          itemBuilder: (_, i) {
+            final item = items[i];
+            return Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                Container(width: 128, height: 128, decoration: BoxDecoration(color: Theme.of(context).colorScheme.primaryContainer, borderRadius: BorderRadius.circular(36)), child: Icon(item.$1, size: 68, color: Theme.of(context).colorScheme.primary)),
+                const SizedBox(height: 28),
+                Text(item.$2, textAlign: TextAlign.center, style: const TextStyle(fontSize: 31, fontWeight: FontWeight.w900)),
+                const SizedBox(height: 10),
+                Text(item.$3, textAlign: TextAlign.center, style: TextStyle(fontSize: 19, fontWeight: FontWeight.w800, color: Theme.of(context).colorScheme.primary)),
+                const SizedBox(height: 14),
+                Text(item.$4, textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, height: 1.7, color: Color(0xff64748b))),
+              ]),
+            );
+          },
+        )),
+        Row(mainAxisAlignment: MainAxisAlignment.center, children: List.generate(items.length, (i) => AnimatedContainer(duration: const Duration(milliseconds: 220), margin: const EdgeInsets.all(4), width: i == page ? 24 : 8, height: 8, decoration: BoxDecoration(color: i == page ? Theme.of(context).colorScheme.primary : const Color(0xffcbd5e1), borderRadius: BorderRadius.circular(10))))),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: SizedBox(width: double.infinity, child: FilledButton.icon(
+            onPressed: () {
+              if (page == items.length - 1) widget.onDone();
+              else controller.nextPage(duration: const Duration(milliseconds: 280), curve: Curves.easeOut);
+            },
+            icon: Icon(page == items.length - 1 ? Icons.rocket_launch_rounded : Icons.arrow_back_rounded),
+            label: Text(page == items.length - 1 ? 'ابدأ مع قاموسي AI' : 'التالي'),
+          )),
+        ),
+      ]),
+    ),
+  );
 }
 
 
@@ -1458,7 +1550,11 @@ class _BookLabPageState extends State<BookLabPage> {
         }
       }
       final list = map.values.where((e) => e.frequency >= 2 || e.meaning.trim().isNotEmpty || (e.frequency == 1 && e.word.length >= 5 && e.exampleEn.isNotEmpty)).toList();
-      // Keep the extraction map's insertion order: this is the first appearance order in the PDF.
+      list.sort((a, b) {
+        final f = b.frequency.compareTo(a.frequency);
+        if (f != 0) return f;
+        return a.word.compareTo(b.word);
+      });
       setState(() { candidates = list; pagesRead = pages.length; });
       if (list.isNotEmpty) {
         await _autoFillMeanings(list);
