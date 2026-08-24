@@ -1,1 +1,1 @@
-Trigger PR CI for Qamoosi AI clean-source materialization.
+Re-run clean materialization after loadWords compatibility fix.
