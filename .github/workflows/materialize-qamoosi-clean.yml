@@ -6,6 +6,7 @@ on:
     paths:
       - ".github/workflows/materialize-qamoosi-clean.yml"
       - "materialize_qamoosi_clean_trigger.txt"
+      - "tool/compat_global_v330_clean.py"
   pull_request:
     branches: ["qamoosi-ai-clean-v341"]
   workflow_dispatch:
@@ -37,6 +38,7 @@ jobs:
           python3 tool/patch_jordan_v323_release.py
           python3 tool/patch_generator_supplement_v330.py
           python3 tool/generate_global_ai_words_v330.py
+          python3 tool/compat_global_v330_clean.py
           python3 tool/patch_global_ai_v330.py
           python3 tool/improve_examples_v340.py
           python3 tool/patch_qamoosi_v340_learning_ux.py
