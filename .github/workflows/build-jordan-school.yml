@@ -9,13 +9,15 @@ on:
       - "qamoosi_ai_build_status.txt"
       - "qamoosi_ai_build_analyze.log"
       - "qamoosi_ai_build_apk.log"
+  pull_request:
+    branches: ["qamoosi-ai-v340-ux"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: qamoosi-ai-v340-build
+  group: qamoosi-ai-v340-build-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -102,7 +104,7 @@ jobs:
           retention-days: 30
 
       - name: Publish Universal APK to GitHub Release
-        if: hashFiles('release/qamoosi-ai-v3.4.1-universal.apk') != ''
+        if: github.event_name != 'pull_request' && hashFiles('release/qamoosi-ai-v3.4.1-universal.apk') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -116,7 +118,7 @@ jobs:
           fi
 
       - name: Persist generated source and logs
-        if: always()
+        if: always() && github.event_name != 'pull_request'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
