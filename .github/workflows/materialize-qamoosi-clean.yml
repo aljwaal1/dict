@@ -1,0 +1,53 @@
+name: Materialize Qamoosi AI clean source
+
+on:
+  push:
+    branches: ["qamoosi-ai-clean-v341"]
+    paths:
+      - ".github/workflows/materialize-qamoosi-clean.yml"
+      - "materialize_qamoosi_clean_trigger.txt"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  materialize:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean branch
+        uses: actions/checkout@v4
+        with:
+          ref: qamoosi-ai-clean-v341
+          fetch-depth: 0
+
+      - name: Materialize final Dart and vocabulary sources
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 tool/patch_jordan_v300_redesign.py
+          python3 tool/patch_jordan_v310_booklab.py
+          python3 tool/patch_jordan_v311_pdf_engine.py
+          python3 tool/patch_jordan_v320_auto_meanings.py
+          python3 tool/patch_jordan_v321_clean_extraction.py
+          python3 tool/patch_jordan_v322_examples_translation.py
+          python3 tool/patch_jordan_v323_release.py
+          python3 tool/patch_generator_supplement_v330.py
+          python3 tool/generate_global_ai_words_v330.py
+          python3 tool/patch_global_ai_v330.py
+          python3 tool/improve_examples_v340.py
+          python3 tool/patch_qamoosi_v340_learning_ux.py
+          sed -i "s/const appVersion = '3.4.0';/const appVersion = '3.4.1';/" lib/main.dart || true
+          sed -i "s/const appVersion = '3.3.0';/const appVersion = '3.4.1';/" lib/main.dart || true
+          sed -i "s/const appVersion = '3.2.3';/const appVersion = '3.4.1';/" lib/main.dart || true
+          sed -i 's/^version:.*/version: 3.4.1+30/' pubspec.yaml
+
+      - name: Commit materialized clean source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart assets/data/words.json pubspec.yaml
+          git commit -m "Materialize Qamoosi AI v3.4.1 clean source"
+          git push origin HEAD:qamoosi-ai-clean-v341
