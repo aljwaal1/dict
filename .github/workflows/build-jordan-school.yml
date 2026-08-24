@@ -1,4 +1,4 @@
-name: Build Qamoosi AI v3.4
+name: Build Qamoosi AI v3.4.1
 
 on:
   push:
@@ -42,7 +42,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Qamoosi AI v3.4.0 Universal APK
+      - name: Build Qamoosi AI v3.4.1 Universal APK
         shell: bash
         run: |
           set +e
@@ -64,10 +64,11 @@ jobs:
               python3 tool/patch_global_ai_v330.py >> qamoosi_ai_build_apk.log 2>&1; p9=$?
               python3 tool/improve_examples_v340.py >> qamoosi_ai_build_apk.log 2>&1; p10=$?
               python3 tool/patch_qamoosi_v340_learning_ux.py >> qamoosi_ai_build_apk.log 2>&1; p11=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ] || [ $p10 -ne 0 ] || [ $p11 -ne 0 ]; then
+              python3 tool/patch_qamoosi_v341_colored_nav.py >> qamoosi_ai_build_apk.log 2>&1; p12=$?
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ] || [ $p10 -ne 0 ] || [ $p11 -ne 0 ] || [ $p12 -ne 0 ]; then
                 echo "PATCH_FAILED" > qamoosi_ai_build_status.txt
               else
-                sed -i 's/^version:.*/version: 3.4.0+29/' pubspec.yaml
+                sed -i 's/^version:.*/version: 3.4.1+30/' pubspec.yaml
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
                 sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
@@ -78,8 +79,8 @@ jobs:
                   flutter build apk --release >> qamoosi_ai_build_apk.log 2>&1
                   if [ $? -ne 0 ]; then echo "BUILD_FAILED" > qamoosi_ai_build_status.txt; else
                     mkdir -p release
-                    cp build/app/outputs/flutter-apk/app-release.apk release/qamoosi-ai-v3.4.0-universal.apk
-                    if test -s release/qamoosi-ai-v3.4.0-universal.apk; then echo "SUCCESS" > qamoosi_ai_build_status.txt; else echo "APK_MISSING" > qamoosi_ai_build_status.txt; fi
+                    cp build/app/outputs/flutter-apk/app-release.apk release/qamoosi-ai-v3.4.1-universal.apk
+                    if test -s release/qamoosi-ai-v3.4.1-universal.apk; then echo "SUCCESS" > qamoosi_ai_build_status.txt; else echo "APK_MISSING" > qamoosi_ai_build_status.txt; fi
                   fi
                 fi
               fi
@@ -92,26 +93,26 @@ jobs:
           exit 0
 
       - name: Upload Universal APK artifact
-        if: hashFiles('release/qamoosi-ai-v3.4.0-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.4.1-universal.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-ai-v3.4.0-universal-apk
-          path: release/qamoosi-ai-v3.4.0-universal.apk
+          name: qamoosi-ai-v3.4.1-universal-apk
+          path: release/qamoosi-ai-v3.4.1-universal.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish Universal APK to GitHub Release
-        if: hashFiles('release/qamoosi-ai-v3.4.0-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.4.1-universal.apk') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="qamoosi-ai-v3.4.0"
-          FILE="release/qamoosi-ai-v3.4.0-universal.apk"
+          TAG="qamoosi-ai-v3.4.1"
+          FILE="release/qamoosi-ai-v3.4.1-universal.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
-            gh release create "$TAG" "$FILE" --target qamoosi-ai-v340-ux --title "Qamoosi AI v3.4.0" --notes "قاموسي AI v3.4.0: بطاقة تعليمية متجاوبة دون تمرير، أمثلة أكثر طبيعية ومناسبة للمراحل، اختبارات حسب PDF والوحدة والسهولة والعشوائي والكلمات المدروسة والشامل، تدريب بعد الاختبار على الكلمات الخاطئة، تحسين بدء النطق، وألوان وقوائم أكثر حيوية مع الحفاظ على منطق التطبيق الحالي."
+            gh release create "$TAG" "$FILE" --target qamoosi-ai-v340-ux --title "Qamoosi AI v3.4.1" --notes "قاموسي AI v3.4.1: كل قسم في شريط التنقل السفلي أصبح بلون مميز وواضح، مع أيقونة نشطة بارزة وخلفية ملونة وظل خفيف، بالإضافة إلى جميع تحسينات v3.4 السابقة للبطاقات والاختبارات والأمثلة والنطق."
           fi
 
       - name: Persist generated source and logs
@@ -124,7 +125,7 @@ jobs:
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Qamoosi AI v3.4.0 learning UX build"
+            git commit -m "Record Qamoosi AI v3.4.1 colored navigation build"
             git pull --rebase origin qamoosi-ai-v340-ux || true
             git push origin HEAD:qamoosi-ai-v340-ux
           fi
