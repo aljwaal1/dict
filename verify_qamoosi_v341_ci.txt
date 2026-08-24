@@ -1,0 +1,1 @@
+Trigger PR CI for Qamoosi AI v3.4.1 after making workflow observable and PR-safe.
