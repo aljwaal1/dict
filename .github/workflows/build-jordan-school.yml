@@ -1,22 +1,21 @@
-name: Build Qamoosi AI
+name: Build Qamoosi AI v3.4
 
 on:
   push:
-    branches: ["jordan-school-dictionary"]
+    branches: ["qamoosi-ai-v340-ux"]
     paths-ignore:
+      - "release/*.apk"
       - "apk/*.apk"
       - "qamoosi_ai_build_status.txt"
       - "qamoosi_ai_build_analyze.log"
       - "qamoosi_ai_build_apk.log"
-  pull_request:
-    branches: ["jordan-school-dictionary"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: qamoosi-ai-build
+  group: qamoosi-ai-v340-build
   cancel-in-progress: true
 
 jobs:
@@ -25,10 +24,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
-      - name: Checkout app branch
+      - name: Checkout v3.4 branch
         uses: actions/checkout@v4
         with:
-          ref: jordan-school-dictionary
+          ref: qamoosi-ai-v340-ux
           fetch-depth: 0
 
       - name: Set up Java 17
@@ -43,7 +42,7 @@ jobs:
           channel: stable
           cache: true
 
-      - name: Build Qamoosi AI v3.3.0 Universal APK
+      - name: Build Qamoosi AI v3.4.0 Universal APK
         shell: bash
         run: |
           set +e
@@ -63,10 +62,12 @@ jobs:
               python3 tool/patch_jordan_v323_release.py >> qamoosi_ai_build_apk.log 2>&1; p7=$?
               python3 tool/generate_global_ai_words_v330.py >> qamoosi_ai_build_apk.log 2>&1; p8=$?
               python3 tool/patch_global_ai_v330.py >> qamoosi_ai_build_apk.log 2>&1; p9=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ]; then
+              python3 tool/improve_examples_v340.py >> qamoosi_ai_build_apk.log 2>&1; p10=$?
+              python3 tool/patch_qamoosi_v340_learning_ux.py >> qamoosi_ai_build_apk.log 2>&1; p11=$?
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ] || [ $p10 -ne 0 ] || [ $p11 -ne 0 ]; then
                 echo "PATCH_FAILED" > qamoosi_ai_build_status.txt
               else
-                sed -i 's/^version:.*/version: 3.3.0+28/' pubspec.yaml
+                sed -i 's/^version:.*/version: 3.4.0+29/' pubspec.yaml
                 sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
                 sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
                 sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
@@ -77,8 +78,8 @@ jobs:
                   flutter build apk --release >> qamoosi_ai_build_apk.log 2>&1
                   if [ $? -ne 0 ]; then echo "BUILD_FAILED" > qamoosi_ai_build_status.txt; else
                     mkdir -p release
-                    cp build/app/outputs/flutter-apk/app-release.apk release/qamoosi-ai-v3.3.0-universal.apk
-                    if test -s release/qamoosi-ai-v3.3.0-universal.apk; then echo "SUCCESS" > qamoosi_ai_build_status.txt; else echo "APK_MISSING" > qamoosi_ai_build_status.txt; fi
+                    cp build/app/outputs/flutter-apk/app-release.apk release/qamoosi-ai-v3.4.0-universal.apk
+                    if test -s release/qamoosi-ai-v3.4.0-universal.apk; then echo "SUCCESS" > qamoosi_ai_build_status.txt; else echo "APK_MISSING" > qamoosi_ai_build_status.txt; fi
                   fi
                 fi
               fi
@@ -87,45 +88,45 @@ jobs:
           cat qamoosi_ai_build_status.txt
           ls -lh release/*.apk 2>/dev/null || true
           tail -n 180 qamoosi_ai_build_analyze.log 2>/dev/null || true
-          tail -n 220 qamoosi_ai_build_apk.log 2>/dev/null || true
+          tail -n 240 qamoosi_ai_build_apk.log 2>/dev/null || true
           exit 0
 
       - name: Upload Universal APK artifact
-        if: hashFiles('release/qamoosi-ai-v3.3.0-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.4.0-universal.apk') != ''
         uses: actions/upload-artifact@v4
         with:
-          name: qamoosi-ai-v3.3.0-universal-apk
-          path: release/qamoosi-ai-v3.3.0-universal.apk
+          name: qamoosi-ai-v3.4.0-universal-apk
+          path: release/qamoosi-ai-v3.4.0-universal.apk
           if-no-files-found: error
           retention-days: 30
 
       - name: Publish Universal APK to GitHub Release
-        if: hashFiles('release/qamoosi-ai-v3.3.0-universal.apk') != ''
+        if: hashFiles('release/qamoosi-ai-v3.4.0-universal.apk') != ''
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="qamoosi-ai-v3.3.0"
-          FILE="release/qamoosi-ai-v3.3.0-universal.apk"
+          TAG="qamoosi-ai-v3.4.0"
+          FILE="release/qamoosi-ai-v3.4.0-universal.apk"
           if gh release view "$TAG" >/dev/null 2>&1; then
             gh release upload "$TAG" "$FILE" --clobber
           else
-            gh release create "$TAG" "$FILE" --target jordan-school-dictionary --title "Qamoosi AI v3.3.0" --notes "قاموسي AI: القاموس الذكي للطلاب العرب. نسخة Universal تشمل الواجهة العالمية، شاشات الترحيب، البحث الذكي المتسامح مع الأخطاء، خطة مراجعة متكيفة، استوديو AI للكتاب، والتعلم الآلي للترجمة، مع 50 كلمة جديدة على الأقل لكل صف من 1 إلى 12 ومعاني وجمل وترجمات."
+            gh release create "$TAG" "$FILE" --target qamoosi-ai-v340-ux --title "Qamoosi AI v3.4.0" --notes "قاموسي AI v3.4.0: بطاقة تعليمية متجاوبة دون تمرير، أمثلة أكثر طبيعية ومناسبة للمراحل، اختبارات حسب PDF والوحدة والسهولة والعشوائي والكلمات المدروسة والشامل، تدريب بعد الاختبار على الكلمات الخاطئة، تحسين بدء النطق، وألوان وقوائم أكثر حيوية مع الحفاظ على منطق التطبيق الحالي."
           fi
 
       - name: Persist generated source and logs
-        if: always() && github.event_name != 'pull_request'
+        if: always()
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart android qamoosi_ai_build_status.txt qamoosi_ai_build_analyze.log qamoosi_ai_build_apk.log 2>/dev/null || true
+          git add lib/main.dart assets/data/words.json android qamoosi_ai_build_status.txt qamoosi_ai_build_analyze.log qamoosi_ai_build_apk.log 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "Nothing to commit"
           else
-            git commit -m "Record Qamoosi AI v3.3.0 universal build"
-            git pull --rebase origin jordan-school-dictionary || true
-            git push origin HEAD:jordan-school-dictionary
+            git commit -m "Record Qamoosi AI v3.4.0 learning UX build"
+            git pull --rebase origin qamoosi-ai-v340-ux || true
+            git push origin HEAD:qamoosi-ai-v340-ux
           fi
 
       - name: Verify success
