@@ -1,1 +1,1 @@
-Re-run clean materialization after loadWords compatibility fix.
+Re-run clean materialization after smartSearch compatibility fix.
