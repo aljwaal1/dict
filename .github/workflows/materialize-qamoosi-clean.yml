@@ -6,6 +6,8 @@ on:
     paths:
       - ".github/workflows/materialize-qamoosi-clean.yml"
       - "materialize_qamoosi_clean_trigger.txt"
+  pull_request:
+    branches: ["qamoosi-ai-clean-v341"]
   workflow_dispatch:
 
 permissions:
@@ -43,11 +45,33 @@ jobs:
           sed -i "s/const appVersion = '3.2.3';/const appVersion = '3.4.1';/" lib/main.dart || true
           sed -i 's/^version:.*/version: 3.4.1+30/' pubspec.yaml
 
+      - name: Verify materialized source
+        shell: bash
+        run: |
+          grep -q "const appVersion = '3.4.1';" lib/main.dart
+          grep -q "قاموسي AI" lib/main.dart
+          python3 - <<'PY'
+          import json
+          p='assets/data/words.json'
+          d=json.load(open(p,encoding='utf-8'))
+          words=d.get('words',[])
+          for g in map(str,range(1,13)):
+              n=sum(1 for w in words if str(w.get('grade',''))==g)
+              print('grade',g,'words',n)
+              if n < 50:
+                  raise SystemExit(f'grade {g} has only {n} words')
+          PY
+
       - name: Commit materialized clean source
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add lib/main.dart assets/data/words.json pubspec.yaml
-          git commit -m "Materialize Qamoosi AI v3.4.1 clean source"
-          git push origin HEAD:qamoosi-ai-clean-v341
+          if git diff --cached --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "Materialize Qamoosi AI v3.4.1 clean source"
+            git push origin HEAD:qamoosi-ai-clean-v341
+          fi
