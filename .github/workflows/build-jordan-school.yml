@@ -62,12 +62,13 @@ jobs:
               python3 tool/patch_jordan_v321_clean_extraction.py >> qamoosi_ai_build_apk.log 2>&1; p5=$?
               python3 tool/patch_jordan_v322_examples_translation.py >> qamoosi_ai_build_apk.log 2>&1; p6=$?
               python3 tool/patch_jordan_v323_release.py >> qamoosi_ai_build_apk.log 2>&1; p7=$?
+              python3 tool/patch_generator_supplement_v330.py >> qamoosi_ai_build_apk.log 2>&1; ps=$?
               python3 tool/generate_global_ai_words_v330.py >> qamoosi_ai_build_apk.log 2>&1; p8=$?
               python3 tool/patch_global_ai_v330.py >> qamoosi_ai_build_apk.log 2>&1; p9=$?
               python3 tool/improve_examples_v340.py >> qamoosi_ai_build_apk.log 2>&1; p10=$?
               python3 tool/patch_qamoosi_v340_learning_ux.py >> qamoosi_ai_build_apk.log 2>&1; p11=$?
               python3 tool/patch_qamoosi_v341_colored_nav.py >> qamoosi_ai_build_apk.log 2>&1; p12=$?
-              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ] || [ $p10 -ne 0 ] || [ $p11 -ne 0 ] || [ $p12 -ne 0 ]; then
+              if [ $p1 -ne 0 ] || [ $p2 -ne 0 ] || [ $p3 -ne 0 ] || [ $p4 -ne 0 ] || [ $p5 -ne 0 ] || [ $p6 -ne 0 ] || [ $p7 -ne 0 ] || [ $ps -ne 0 ] || [ $p8 -ne 0 ] || [ $p9 -ne 0 ] || [ $p10 -ne 0 ] || [ $p11 -ne 0 ] || [ $p12 -ne 0 ]; then
                 echo "PATCH_FAILED" > qamoosi_ai_build_status.txt
               else
                 sed -i 's/^version:.*/version: 3.4.1+30/' pubspec.yaml
