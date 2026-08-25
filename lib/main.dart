@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.2';
+const appVersion = '3.4.3';
 const QAMOOSI_V340_LEARNING_UX = true;
 
 Future<void> main() async {
@@ -204,9 +204,15 @@ class Store extends ChangeNotifier {
 
   String get pkey => 'p$activeProfile';
 
-  Future<void> init() async {
+  Future<void> init({void Function(String message, double progress, bool firstInstall)? onProgress}) async {
+    onProgress?.call('جاري بدء Easy English AI…', .06, false);
     prefs = await SharedPreferences.getInstance();
     freshInstall = prefs.getBool('installation_initialized') != true;
+    onProgress?.call(
+      freshInstall ? 'نجهّز التطبيق لأول استخدام…' : 'جاري تحميل بياناتك…',
+      .16,
+      freshInstall,
+    );
     await prefs.setBool('installation_initialized', true);
     sound = prefs.getBool('sound') ?? true;
     activeProfile = prefs.getInt('activeProfile') ?? 1;
@@ -214,10 +220,14 @@ class Store extends ChangeNotifier {
     profiles = rawProfiles == null
         ? [Profile(1, 'الطالب 1')]
         : (jsonDecode(rawProfiles) as List).map((e) => Profile.fromJson(Map<String, dynamic>.from(e))).toList();
+    onProgress?.call('جاري تجهيز قاموس الكلمات…', .38, freshInstall);
     await _loadWords();
+    onProgress?.call('جاري استعادة تقدمك وإعداداتك…', .62, freshInstall);
     await loadProgress();
+    onProgress?.call('جاري تجهيز النطق والترجمة…', .80, freshInstall);
     await _configureTts();
     await _prepareTts();
+    onProgress?.call('جاهز تقريبًا…', .98, freshInstall);
   }
 
   Future<void> _loadWords() async {
@@ -883,13 +893,26 @@ class _AppBootstrapState extends State<AppBootstrap> {
   final store = Store();
   bool ready = false;
   bool introDone = false;
+  bool firstInstallPreparing = false;
+  double bootProgress = .04;
+  String bootMessage = 'جاري تشغيل Easy English AI…';
 
   @override
   void initState() {
     super.initState();
-    store.init().then((_) {
+    store.init(onProgress: (message, progress, firstInstall) {
       if (!mounted) return;
-      setState(() => ready = true);
+      setState(() {
+        bootMessage = message;
+        bootProgress = progress;
+        firstInstallPreparing = firstInstall;
+      });
+    }).then((_) {
+      if (!mounted) return;
+      setState(() {
+        bootProgress = 1;
+        ready = true;
+      });
     });
   }
 
@@ -921,7 +944,48 @@ class _AppBootstrapState extends State<AppBootstrap> {
 
   @override
   Widget build(BuildContext context) {
-    if (!ready) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    if (!ready) {
+      return Scaffold(
+        body: SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 440),
+                child: Column(mainAxisSize: MainAxisSize.min, children: [
+                  Container(
+                    width: 108,
+                    height: 108,
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(32),
+                    ),
+                    child: Icon(Icons.auto_awesome_rounded, size: 58, color: Theme.of(context).colorScheme.primary),
+                  ),
+                  const SizedBox(height: 24),
+                  const Text('Easy English AI', textAlign: TextAlign.center, style: TextStyle(fontSize: 29, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 12),
+                  Text(bootMessage, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 18),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: LinearProgressIndicator(value: bootProgress.clamp(0, 1), minHeight: 10),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    firstInstallPreparing
+                        ? 'في أول تشغيل يحتاج التطبيق إلى لحظات لتجهيز الكلمات والنطق وخدمات الترجمة. الرجاء الانتظار قليلًا ولا تغلق التطبيق.'
+                        : 'نحمّل بياناتك ونجهّز أدوات التعلم. لن يستغرق ذلك طويلًا.',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(height: 1.55, color: Color(0xff64748b)),
+                  ),
+                ]),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
     if (store.freshInstall && !introDone) {
       return QamoosiAiOnboarding(onDone: () {
         setState(() => introDone = true);
@@ -1512,8 +1576,8 @@ class _BookLabPageState extends State<BookLabPage> {
         final text = pages[pi];
         final unitMatch = RegExp(r'\bUnit\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
         final lessonMatch = RegExp(r'\bLesson\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
-        if (unitMatch != null) currentUnit = 'Unit ${unitMatch.group(1)}';
-        if (lessonMatch != null) currentLesson = 'Lesson ${lessonMatch.group(1)}';
+        if (unitMatch != null) { final v = (unitMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'unit') currentUnit = 'Unit $v'; }
+        if (lessonMatch != null) { final v = (lessonMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'lesson') currentLesson = 'Lesson $v'; }
 
         final tokens = RegExp(r"[A-Za-z][A-Za-z'-]*").allMatches(text).toList();
         for (var ti = 0; ti < tokens.length; ti++) {
@@ -1558,6 +1622,54 @@ class _BookLabPageState extends State<BookLabPage> {
       if (mounted) snack(context, 'تعذر تحليل PDF: $e');
     } finally {
       if (mounted) setState(() => busy = false);
+    }
+  }
+
+  final Map<String, String> _onlineTranslationCache = <String, String>{};
+
+  Future<String> _translateOnline(String value) async {
+    final text = value.trim();
+    if (text.isEmpty) return '';
+    final cacheKey = text.toLowerCase();
+    final cached = _onlineTranslationCache[cacheKey];
+    if (cached != null) return cached;
+    try {
+      final uri = Uri.https('api.mymemory.translated.net', '/get', {
+        'q': text,
+        'langpair': 'en|ar',
+      });
+      final response = await http.get(uri, headers: const {'Accept': 'application/json'}).timeout(const Duration(seconds: 7));
+      if (response.statusCode != 200) return '';
+      final decoded = jsonDecode(response.body);
+      if (decoded is! Map) return '';
+      final responseData = decoded['responseData'];
+      if (responseData is! Map) return '';
+      final translated = (responseData['translatedText'] ?? '').toString().trim();
+      if (translated.isEmpty || translated.toLowerCase() == text.toLowerCase()) return '';
+      _onlineTranslationCache[cacheKey] = translated;
+      return translated;
+    } catch (_) {
+      return '';
+    }
+  }
+
+  Future<void> _fillUnresolvedOnline(List<BookCandidate> list) async {
+    final unresolved = list.where((c) => c.meaning.trim().isEmpty || (c.exampleEn.trim().isNotEmpty && c.exampleAr.trim().isEmpty)).toList();
+    const batchSize = 4;
+    for (var start = 0; start < unresolved.length; start += batchSize) {
+      final end = min(start + batchSize, unresolved.length);
+      final batch = unresolved.sublist(start, end);
+      await Future.wait(batch.map((c) async {
+        if (c.meaning.trim().isEmpty) {
+          final onlineMeaning = await _translateOnline(c.word);
+          if (onlineMeaning.isNotEmpty) c.meaning = onlineMeaning;
+        }
+        if (c.exampleEn.trim().isNotEmpty && c.exampleAr.trim().isEmpty) {
+          final onlineSentence = await _translateOnline(c.exampleEn);
+          if (onlineSentence.isNotEmpty) c.exampleAr = onlineSentence;
+        }
+      }));
+      if (mounted) setState(() {});
     }
   }
 
@@ -1606,9 +1718,13 @@ class _BookLabPageState extends State<BookLabPage> {
         translator.close();
       }
     } catch (_) {
-      // Extraction remains usable even if the language models could not be downloaded.
-      // Generated English examples stay editable and unresolved Arabic fields remain reviewable.
+      // If the on-device model is unavailable, continue below with the internet fallback.
     }
+
+    // Internet is a fallback, not the first choice. This prevents ordinary words such as
+    // school/class/great from being marked for manual review merely because the local
+    // translation model was unavailable on a device.
+    await _fillUnresolvedOnline(list);
   }
 
   Future<void> _editCandidate(BookCandidate c) async {
@@ -1719,7 +1835,7 @@ class _BookLabPageState extends State<BookLabPage> {
                       leading: Checkbox(value: c.selected, onChanged: (v) => setState(() => c.selected = v ?? false)),
                       title: Row(children: [Expanded(child: Text(c.word, textDirection: TextDirection.ltr, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900))), IconButton(onPressed: () => widget.store.speak(c.word), icon: const Icon(Icons.volume_up_rounded), tooltip: 'نطق')]),
                       subtitle: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text(c.meaning.isEmpty ? 'المعنى يحتاج مراجعة' : c.meaning, style: TextStyle(fontWeight: FontWeight.w700, color: c.meaning.isEmpty ? Theme.of(context).colorScheme.error : null)),
+                        Text(c.meaning.isEmpty ? 'تعذر جلب المعنى تلقائيًا' : c.meaning, style: TextStyle(fontWeight: FontWeight.w700, color: c.meaning.isEmpty ? Theme.of(context).colorScheme.error : null)),
                         const SizedBox(height: 3),
                         Text(scope, style: const TextStyle(fontSize: 12, color: Color(0xff64748b))),
                         if (c.exampleEn.isNotEmpty) ...[Padding(padding: const EdgeInsets.only(top: 5), child: Text(c.exampleEn, textDirection: TextDirection.ltr, maxLines: 2, overflow: TextOverflow.ellipsis)), Text(c.exampleGenerated ? 'مثال مولّد • الترجمة العربية تلقائية' : 'مثال من الكتاب • الترجمة العربية تلقائية', style: const TextStyle(fontSize: 11, color: Color(0xff64748b)))],
