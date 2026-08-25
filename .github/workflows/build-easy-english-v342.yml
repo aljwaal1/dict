@@ -5,13 +5,15 @@ on:
     branches: ["easy-english-ai-v342"]
     paths-ignore:
       - "release/*.apk"
+  pull_request:
+    branches: ["easy-english-ai-v342"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
 concurrency:
-  group: easy-english-ai-v342
+  group: easy-english-ai-v342-${{ github.event_name }}
   cancel-in-progress: true
 
 jobs:
@@ -71,6 +73,7 @@ jobs:
           sha256sum release/easy-english-ai-v3.4.2-universal.apk
 
       - name: Persist final v3.4.2 source
+        if: github.event_name != 'pull_request'
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -90,6 +93,7 @@ jobs:
           retention-days: 30
 
       - name: Publish GitHub Release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
