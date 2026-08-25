@@ -1,0 +1,1 @@
+Re-run Easy English AI v3.4.2 after fixing RTL navigation arrow icons.
