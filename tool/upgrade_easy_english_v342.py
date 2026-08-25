@@ -25,9 +25,10 @@ s = s.replace("Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign:
 s = s.replace("Text(word.exampleAr, textAlign: TextAlign.center, maxLines: 3, overflow: TextOverflow.ellipsis, style:", "Text(word.exampleAr, textAlign: TextAlign.center, style:")
 s = s.replace("Text(word.ar, textAlign: TextAlign.center, maxLines: 2, overflow: TextOverflow.ellipsis, style:", "Text(word.ar, textAlign: TextAlign.center, style:")
 
-# Fixed, non-mirrored navigation arrows for Arabic UI: next = left, previous = right.
-s = s.replace("icon: const Icon(Icons.arrow_forward_rounded, size: 19), label: const Text('السابق')", "icon: const Icon(Icons.arrow_right_alt_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('السابق')")
-s = s.replace("icon: const Icon(Icons.arrow_back_rounded, size: 19), label: const Text('التالي')", "icon: const Icon(Icons.arrow_left_alt_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('التالي')")
+# Fixed, non-mirrored navigation arrows for Arabic UI.
+# Previous = right arrow, Next = left arrow. Force LTR so RTL does not mirror them.
+s = s.replace("icon: const Icon(Icons.arrow_forward_rounded, size: 19), label: const Text('السابق')", "icon: const Icon(Icons.arrow_forward_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('السابق')")
+s = s.replace("icon: const Icon(Icons.arrow_back_rounded, size: 19), label: const Text('التالي')", "icon: const Icon(Icons.arrow_back_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('التالي')")
 
 old_helpers = r'''  String _sentenceFor(String pageText, String word) {
     final normalized = pageText.replaceAll(RegExp(r'\s+'), ' ').trim();
@@ -149,13 +150,13 @@ if old_helpers not in s:
     raise SystemExit('PDF helper block not found')
 s = s.replace(old_helpers, new_helpers)
 
-# Stronger vocabulary filter: keep known words, good contextual examples, or genuinely repeated vocabulary.
+# Stronger vocabulary filter.
 s = s.replace(
 "final list = map.values.where((e) => e.frequency >= 2 || e.meaning.trim().isNotEmpty || (e.frequency == 1 && e.word.length >= 5 && e.exampleEn.isNotEmpty)).toList();",
 "final list = map.values.where((e) => e.meaning.trim().isNotEmpty || e.exampleEn.trim().isNotEmpty || e.frequency >= 3).where((e) => !_stopWords.contains(e.word.toLowerCase())).toList();"
 )
 
-# Prefer book examples, then dictionary examples, then deterministic fallback before Arabic translation.
+# Prefer book examples, then dictionary examples, then fallback before Arabic translation.
 s = s.replace(
 """      if (list.isNotEmpty) {
         await _autoFillMeanings(list);""",
@@ -164,7 +165,6 @@ s = s.replace(
         await _autoFillMeanings(list);"""
 )
 
-# Avoid overwriting the quality-example stage with old generic creation in _autoFillMeanings.
 s = s.replace(
 """    // Give every candidate a usable English example before translation.
     for (final c in list) {
