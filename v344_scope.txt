@@ -1,0 +1,1 @@
+Easy English AI v3.4.4 scope: keep nearly all English PDF words; exclude prepositions, conjunctions, obvious personal/city/country/place names, numbers/symbols/noise. Unify quick cards naming and simplify card layout.
