@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.3';
+const appVersion = '3.4.4';
 const QAMOOSI_V340_LEARNING_UX = true;
 
 Future<void> main() async {
@@ -1308,7 +1308,7 @@ class LearnHubPage extends StatelessWidget {
       )),
       const SizedBox(height: 8),
       Row(children: [
-        Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'البطاقات', subtitle: 'تعلم كلمة كلمة', onTap: () => push(context, FlashCardsPage(store: store)))),
+        Expanded(child: QuickCard(icon: Icons.style_rounded, title: 'بطاقات سريعة', subtitle: 'تعلم الكلمة مع النطق والمعنى والمثال', onTap: () => push(context, FlashCardsPage(store: store)))),
         const SizedBox(width: 12),
         Expanded(child: QuickCard(icon: Icons.quiz_rounded, title: 'اختبار AI متكيف', subtitle: 'يتكيف مع مستواك وأخطائك', onTap: () => push(context, QuizSetupPage(store: store)))),
       ]),
@@ -1346,7 +1346,7 @@ class AdaptiveReviewPage extends StatelessWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('خطة AI اليومية')),
       body: words.isEmpty
-          ? const Center(child: Padding(padding: EdgeInsets.all(28), child: Text('ممتاز! لا توجد كلمات صعبة بعد. ابدأ اختبارًا أو بطاقات تعليمية ليبني المدرب الذكي خطة مناسبة لك.', textAlign: TextAlign.center)))
+          ? const Center(child: Padding(padding: EdgeInsets.all(28), child: Text('ممتاز! لا توجد كلمات صعبة بعد. ابدأ اختبارًا أو بطاقات سريعة ليبني المدرب الذكي خطة مناسبة لك.', textAlign: TextAlign.center)))
           : ListView.builder(
               padding: const EdgeInsets.all(16),
               itemCount: words.length,
@@ -1408,38 +1408,32 @@ class _BookLabPageState extends State<BookLabPage> {
   int pagesRead = 0;
 
   static const _stopWords = <String>{
-    'the','and','for','with','this','that','these','those','from','into','onto','than','then','when','where','what','which','who','whom','whose','why','how',
-    'you','your','yours','they','their','theirs','them','there','here','have','has','had','having','does','did','done','doing','are','was','were','been','being',
-    'can','could','will','would','shall','should','may','might','must','not','yes','no','very','more','most','some','any','many','much','few','each','every','both',
-    'about','above','after','again','against','along','among','around','before','below','between','during','inside','outside','over','under','through','without','within',
-    'lesson','unit','page','pages','student','students','teacher','teachers','book','workbook','exercise','exercises','activity','activities','read','write','listen','look',
-    'answer','answers','question','questions','complete','match','choose','circle','check','tick','work','pair','pairs','group','groups','english','arabic','example','examples'
+    'about','above','across','after','against','along','among','around','at','before','behind','below','beneath','beside','besides','between','beyond',
+    'by','despite','down','during','except','for','from','in','inside','into','like','near','of','off','on','onto','opposite','outside','over','past','since',
+    'through','throughout','to','toward','towards','under','underneath','until','up','upon','via','with','within','without',
+    'and','or','but','nor','yet','so','although','though','because','unless','while','whereas','whether','if','than','once',
+    'unit','lesson','page','pages'
+  };
+
+  static const _knownProperNames = <String>{
+    'adam','ahmed','ali','amal','amina','anna','ben','david','emma','fatima','george','hassan','helen','ibrahim','jack','james','jane','john','joseph',
+    'khaled','layla','linda','lisa','maria','mary','michael','mohamed','mohammad','mohammed','mona','nancy','nora','omar','peter','rasha','sally','sara','sarah',
+    'sam','sami','samer','susan','tom','yousef','yusuf','zaid','zeinab','zainab',
+    'amman','aqaba','athens','australia','austria','baghdad','bahrain','beijing','berlin','brazil','britain','cairo','canada','china','damascus','denmark',
+    'dubai','egypt','england','europe','finland','france','germany','greece','india','iraq','ireland','istanbul','italy','japan','jerusalem','jordan','kuwait',
+    'london','madrid','morocco','moscow','newyork','norway','oman','paris','poland','qatar','riyadh','rome','russia','saudi','scotland','spain','stockholm',
+    'sweden','switzerland','syria','tokyo','turkey','uae','ukraine','yemen'
   };
 
   bool _validWord(String raw, {required bool midSentenceTitleCase}) {
     final w = raw.trim();
     if (!RegExp(r"^[A-Za-z][A-Za-z'-]*$").hasMatch(w)) return false;
     final lower = w.toLowerCase();
-    if (lower.length < 3 || lower.length > 28) return false;
+    if (lower.length < 2 || lower.length > 32) return false;
     if (_stopWords.contains(lower)) return false;
-    const extraNoise = <String>{
-      'him','his','her','hers','she','he','its','our','ours','us','me','my','mine','we','it','itself','himself','herself','myself','yourself','ourselves','themselves',
-      'a','an','of','to','in','on','at','by','as','or','if','so','but','nor','yet','too','also','just','only','even','still','already','ever','never','once','twice',
-      'do','go','get','got','make','made','say','said','tell','told','ask','asked','use','used','see','saw','come','came','take','took','give','gave',
-      'one','two','three','four','five','six','seven','eight','nine','ten'
-    };
-    if (extraNoise.contains(lower)) return false;
-    const bookNoise = <String>{
-      'unit','lesson','page','pages','student','students','teacher','teachers','book','books','workbook','workbooks',
-      'exercise','exercises','activity','activities','task','tasks','question','questions','answer','answers',
-      'read','write','listen','look','check','choose','circle','match','complete','tick','underline','work','pair','pairs','group','groups',
-      'example','examples','english','arabic','grammar','vocabulary','language','review','revision','practice','project',
-      'true','false','correct','incorrect','number','numbers','name','names','word','words','sentence','sentences',
-      'first','second','third','fourth','next','previous','following','above','below'
-    };
-    if (bookNoise.contains(lower)) return false;
+    if (_knownProperNames.contains(lower.replaceAll(RegExp(r"[-']"), ''))) return false;
     if (RegExp(r'^([a-z])\1+$').hasMatch(lower)) return false;
-    if (midSentenceTitleCase && RegExp(r'^[A-Z][a-z]+$').hasMatch(w)) return false;
+    if (midSentenceTitleCase && RegExp(r"^[A-Z][a-z]+(?:[-'][A-Z]?[a-z]+)?$").hasMatch(w)) return false;
     return true;
   }
 
@@ -1605,19 +1599,14 @@ class _BookLabPageState extends State<BookLabPage> {
           }
         }
       }
-      final list = map.values.where((e) => e.meaning.trim().isNotEmpty || e.exampleEn.trim().isNotEmpty || e.frequency >= 3).where((e) => !_stopWords.contains(e.word.toLowerCase())).toList();
-      list.sort((a, b) {
-        final f = b.frequency.compareTo(a.frequency);
-        if (f != 0) return f;
-        return a.word.compareTo(b.word);
-      });
+      final list = map.values.toList(growable: true);
       setState(() { candidates = list; pagesRead = pages.length; });
       if (list.isNotEmpty) {
         await _fillQualityExamples(list);
         await _autoFillMeanings(list);
         if (mounted) setState(() { candidates = List<BookCandidate>.from(list); });
       }
-      if (mounted && list.isEmpty) snack(context, 'تمت قراءة الملف لكن لم يتم العثور على كلمات تعليمية مناسبة');
+      if (mounted && list.isEmpty) snack(context, 'تمت قراءة الملف لكن لم يتم العثور على كلمات صالحة بعد استبعاد حروف الجر والعطف والأسماء والأماكن');
     } catch (e) {
       if (mounted) snack(context, 'تعذر تحليل PDF: $e');
     } finally {
@@ -2072,8 +2061,8 @@ class FlashCardsPage extends StatefulWidget {
 class _FlashCardsPageState extends State<FlashCardsPage> {
   String grade = '1';
   int index = 0;
-  bool showMeaning = false;
-  bool showExample = false;
+  bool showMeaning = true;
+  bool showExample = true;
 
   @override
   void initState() {
@@ -2092,8 +2081,8 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
     setState(() {
       index = (index + delta) % length;
       if (index < 0) index += length;
-      showMeaning = false;
-      showExample = false;
+      showMeaning = true;
+      showExample = true;
     });
     widget.store.saveLastIndex(grade, index);
     _markCurrent();
@@ -2106,7 +2095,7 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
     if (!ok && context.mounted) snack(context, 'تعذر تشغيل النطق. فعّل محرك تحويل النص إلى كلام الإنجليزي من إعدادات الهاتف');
   }
 
-  Widget _actionButton({required Widget child}) => SizedBox(height: 46, child: child);
+  Widget _bottomButton({required Widget child}) => SizedBox(height: 44, child: child);
 
   @override
   Widget build(BuildContext context) {
@@ -2114,14 +2103,15 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
     if (list.isNotEmpty && index >= list.length) index = 0;
     final word = list.isEmpty ? null : list[index];
     final hasExample = word != null && (word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty);
+
     return Scaffold(
-      appBar: AppBar(title: const Text('البطاقات التعليمية'), toolbarHeight: 52),
-      body: Padding(
-        padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
-        child: Column(children: [
-          SizedBox(
-            height: 52,
-            child: DropdownButtonFormField<String>(
+      appBar: AppBar(title: const Text('بطاقات سريعة'), toolbarHeight: 52),
+      body: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(10, 4, 10, 8),
+          child: Column(children: [
+            DropdownButtonFormField<String>(
               initialValue: grade,
               isExpanded: true,
               items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
@@ -2129,114 +2119,79 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
                 setState(() {
                   grade = value ?? '1';
                   index = widget.store.lastIndex(grade);
-                  showMeaning = false;
-                  showExample = false;
+                  showMeaning = true;
+                  showExample = true;
                 });
                 _markCurrent();
               },
-              decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 8)),
+              decoration: const InputDecoration(contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             ),
-          ),
-          const SizedBox(height: 4),
-          if (word != null) Text('${index + 1} / ${list.length}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
-          const SizedBox(height: 4),
-          Expanded(
-            child: word == null
-                ? const Center(child: Text('لا توجد كلمات في هذا الصف'))
-                : GestureDetector(
-                    onHorizontalDragEnd: (details) {
-                      final v = details.primaryVelocity ?? 0;
-                      if (v < -100) move(1, list.length);
-                      if (v > 100) move(-1, list.length);
-                    },
-                    child: LayoutBuilder(builder: (context, constraints) {
-                      final compact = constraints.maxHeight < 430;
-                      final wordSize = compact ? 34.0 : 40.0;
-                      final innerWidth = max(240.0, constraints.maxWidth - 24);
-                      return Card(
+            const SizedBox(height: 5),
+            if (word != null) Text('${index + 1} من ${list.length}', style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14)),
+            const SizedBox(height: 5),
+            Expanded(
+              child: word == null
+                  ? const Center(child: Text('لا توجد كلمات في هذا الصف'))
+                  : GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                        final v = details.primaryVelocity ?? 0;
+                        if (v < -100) move(1, list.length);
+                        if (v > 100) move(-1, list.length);
+                      },
+                      child: Card(
                         margin: EdgeInsets.zero,
-                        child: Padding(
-                          padding: EdgeInsets.all(compact ? 10 : 14),
-                          child: Center(
-                            child: SingleChildScrollView(
-                              child: SizedBox(
-                                width: innerWidth,
-                                child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                  Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: TextStyle(fontSize: wordSize, fontWeight: FontWeight.w900)),
-                                  const SizedBox(height: 3),
-                                  Text(gradeName(word.grade), style: const TextStyle(fontSize: 12, color: Color(0xff64748b), fontWeight: FontWeight.w700)),
-                                  SizedBox(height: compact ? 7 : 10),
-                                  SizedBox(width: double.infinity, height: 44, child: FilledButton.tonalIcon(
-                                    onPressed: () => pronounce(context, word.en),
-                                    icon: const Icon(Icons.volume_up_rounded),
-                                    label: const Text('لفظ الكلمة'),
-                                  )),
-                                  if (hasExample) ...[
-                                    const SizedBox(height: 7),
-                                    SizedBox(width: double.infinity, height: 44, child: OutlinedButton.icon(
-                                      onPressed: () => setState(() => showExample = !showExample),
-                                      icon: const Icon(Icons.format_quote_rounded),
-                                      label: Text(showExample ? 'إخفاء مثال الجملة' : 'إظهار مثال الجملة'),
-                                    )),
-                                    if (showExample) Container(
-                                      width: double.infinity,
-                                      margin: const EdgeInsets.only(top: 7),
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(color: const Color(0xfff3e8ff), borderRadius: BorderRadius.circular(16)),
-                                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                                        if (word.exampleEn.isNotEmpty) ...[
-                                          Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: TextStyle(fontSize: compact ? 14 : 16, fontWeight: FontWeight.w800)),
-                                          const SizedBox(height: 5),
-                                          SizedBox(height: 38, child: FilledButton.tonalIcon(onPressed: () => pronounce(context, word.exampleEn), icon: const Icon(Icons.volume_up_rounded, size: 18), label: const Text('لفظ الجملة'))),
-                                        ],
-                                        if (word.exampleAr.isNotEmpty) ...[
-                                          const SizedBox(height: 5),
-                                          Text(word.exampleAr, textAlign: TextAlign.center, style: TextStyle(fontSize: compact ? 13 : 15, height: 1.25)),
-                                        ],
-                                      ]),
-                                    ),
-                                  ],
-                                  const SizedBox(height: 7),
-                                  SizedBox(width: double.infinity, height: 44, child: FilledButton.icon(
-                                    onPressed: () => setState(() => showMeaning = !showMeaning),
-                                    icon: const Icon(Icons.translate_rounded),
-                                    label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'),
-                                  )),
-                                  if (showMeaning) Container(
-                                    width: double.infinity,
-                                    margin: const EdgeInsets.only(top: 7),
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                                    decoration: BoxDecoration(color: const Color(0xffdbeafe), borderRadius: BorderRadius.circular(16)),
-                                    child: Text(word.ar, textAlign: TextAlign.center, style: TextStyle(fontSize: compact ? 22 : 27, fontWeight: FontWeight.w900)),
-                                  ),
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(14, 14, 14, 18),
+                          children: [
+                            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+                              Flexible(child: Text(word.en, textDirection: TextDirection.ltr, textAlign: TextAlign.center, style: const TextStyle(fontSize: 36, fontWeight: FontWeight.w900))),
+                              IconButton(onPressed: () => pronounce(context, word.en), tooltip: 'لفظ الكلمة', icon: const Icon(Icons.volume_up_rounded, size: 27)),
+                            ]),
+                            Text(gradeName(word.grade), textAlign: TextAlign.center, style: const TextStyle(fontSize: 12, color: Color(0xff64748b), fontWeight: FontWeight.w700)),
+                            const SizedBox(height: 10),
+                            Row(children: [
+                              Expanded(child: OutlinedButton.icon(onPressed: () => setState(() => showMeaning = !showMeaning), icon: const Icon(Icons.translate_rounded, size: 18), label: Text(showMeaning ? 'إخفاء المعنى' : 'إظهار المعنى'))),
+                              if (hasExample) ...[
+                                const SizedBox(width: 7),
+                                Expanded(child: OutlinedButton.icon(onPressed: () => setState(() => showExample = !showExample), icon: const Icon(Icons.format_quote_rounded, size: 18), label: Text(showExample ? 'إخفاء المثال' : 'إظهار المثال'))),
+                              ],
+                            ]),
+                            if (showMeaning) ...[
+                              const SizedBox(height: 9),
+                              Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: const Color(0xffdbeafe), borderRadius: BorderRadius.circular(16)), child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, height: 1.3))),
+                            ],
+                            if (hasExample && showExample) ...[
+                              const SizedBox(height: 9),
+                              Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xfff3e8ff), borderRadius: BorderRadius.circular(16)), child: Column(children: [
+                                if (word.exampleEn.isNotEmpty) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.left, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, height: 1.45))),
+                                  IconButton(onPressed: () => pronounce(context, word.exampleEn), tooltip: 'لفظ الجملة', icon: const Icon(Icons.volume_up_rounded, size: 21)),
                                 ]),
-                              ),
-                            ),
-                          ),
+                                if (word.exampleAr.isNotEmpty) ...[
+                                  if (word.exampleEn.isNotEmpty) const Divider(height: 18),
+                                  Text(word.exampleAr, textAlign: TextAlign.right, style: const TextStyle(fontSize: 15, height: 1.5, fontWeight: FontWeight.w600)),
+                                ],
+                              ])),
+                            ],
+                          ],
                         ),
-                      );
-                    }),
-                  ),
-          ),
-          const SizedBox(height: 6),
-          Row(children: [
-            Expanded(child: _actionButton(child: OutlinedButton.icon(onPressed: word == null ? null : () => move(-1, list.length), icon: const Icon(Icons.arrow_forward_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('السابق')))),
-            const SizedBox(width: 7),
-            Expanded(child: _actionButton(child: FilledButton.icon(onPressed: word == null ? null : () => move(1, list.length), icon: const Icon(Icons.arrow_back_rounded, size: 22, textDirection: TextDirection.ltr), label: const Text('التالي')))),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 6),
+            Row(children: [
+              Expanded(child: _bottomButton(child: OutlinedButton.icon(onPressed: word == null ? null : () => move(-1, list.length), icon: const Icon(Icons.arrow_forward_rounded, size: 21, textDirection: TextDirection.ltr), label: const Text('السابق')))),
+              const SizedBox(width: 7),
+              Expanded(child: _bottomButton(child: FilledButton.icon(onPressed: word == null ? null : () => move(1, list.length), icon: const Icon(Icons.arrow_back_rounded, size: 21, textDirection: TextDirection.ltr), label: const Text('التالي')))),
+            ]),
+            const SizedBox(height: 5),
+            Row(children: [
+              Expanded(child: _bottomButton(child: OutlinedButton.icon(style: OutlinedButton.styleFrom(foregroundColor: const Color(0xffb45309), side: const BorderSide(color: Color(0xfff59e0b))), onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: false); move(1, list.length); }, icon: const Icon(Icons.refresh_rounded, size: 18), label: const Text('تحتاج مراجعة')))),
+              const SizedBox(width: 7),
+              Expanded(child: _bottomButton(child: FilledButton.icon(style: FilledButton.styleFrom(backgroundColor: const Color(0xff059669), foregroundColor: Colors.white), onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: true); move(1, list.length); }, icon: const Icon(Icons.check_rounded, size: 18), label: const Text('أتقنتها')))),
+            ]),
           ]),
-          const SizedBox(height: 5),
-          Row(children: [
-            Expanded(child: _actionButton(child: OutlinedButton.icon(
-              style: OutlinedButton.styleFrom(foregroundColor: const Color(0xffb45309), side: const BorderSide(color: Color(0xfff59e0b))),
-              onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: false); move(1, list.length); },
-              icon: const Icon(Icons.refresh_rounded, size: 19), label: const Text('تحتاج مراجعة')))),
-            const SizedBox(width: 7),
-            Expanded(child: _actionButton(child: FilledButton.icon(
-              style: FilledButton.styleFrom(backgroundColor: const Color(0xff059669), foregroundColor: Colors.white),
-              onPressed: word == null ? null : () async { await widget.store.setReviewState(word, masteredNow: true); move(1, list.length); },
-              icon: const Icon(Icons.check_rounded, size: 19), label: const Text('أتقنتها')))),
-          ]),
-        ]),
+        ),
       ),
     );
   }
