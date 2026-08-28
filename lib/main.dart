@@ -18,15 +18,19 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.4';
+const appVersion = '3.4.5';
 const QAMOOSI_V340_LEARNING_UX = true;
+
+Future<void>? _pdfRuntimeInit;
+Future<void> ensurePdfRuntime() => _pdfRuntimeInit ??= pdfrxFlutterInitialize();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await pdfrxFlutterInitialize();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,
     statusBarIconBrightness: Brightness.dark,
+    systemNavigationBarColor: Colors.white,
+    systemNavigationBarIconBrightness: Brightness.dark,
   ));
   runApp(const QamoosiApp());
 }
@@ -51,45 +55,45 @@ class QamoosiApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: scheme,
-        scaffoldBackgroundColor: const Color(0xfff4f8ff),
+        scaffoldBackgroundColor: const Color(0xfff7f9fc),
         fontFamily: 'sans',
         appBarTheme: const AppBarTheme(
           elevation: 0,
           centerTitle: true,
           backgroundColor: Colors.transparent,
           foregroundColor: Color(0xff14213d),
-          titleTextStyle: TextStyle(fontSize: 21, fontWeight: FontWeight.w800, color: Color(0xff14213d)),
+          titleTextStyle: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: -.2, color: Color(0xff14213d)),
         ),
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 0,
           margin: const EdgeInsets.symmetric(vertical: 6),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(20),
             side: const BorderSide(color: Color(0xffe3ecfb)),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
           fillColor: Colors.white,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: BorderSide.none),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: Color(0xffe3ecfb))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(18), borderSide: const BorderSide(color: seed, width: 1.6)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xffe3ecfb))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: seed, width: 1.5)),
         ),
         filledButtonTheme: FilledButtonThemeData(
           style: FilledButton.styleFrom(
-            minimumSize: const Size(64, 52),
+            minimumSize: const Size(64, 48),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             tapTargetSize: MaterialTapTargetSize.padded,
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
-            minimumSize: const Size(64, 52),
+            minimumSize: const Size(64, 48),
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             side: const BorderSide(color: Color(0xffcbd9ee)),
             textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
             tapTargetSize: MaterialTapTargetSize.padded,
@@ -112,10 +116,10 @@ class QamoosiApp extends StatelessWidget {
           ),
         ),
         navigationBarTheme: NavigationBarThemeData(
-          height: 72,
+          height: 68,
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xffdbeafe),
-          elevation: 2,
+          elevation: 1,
           labelTextStyle: const WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
         ),
       ),
@@ -220,14 +224,11 @@ class Store extends ChangeNotifier {
     profiles = rawProfiles == null
         ? [Profile(1, 'الطالب 1')]
         : (jsonDecode(rawProfiles) as List).map((e) => Profile.fromJson(Map<String, dynamic>.from(e))).toList();
-    onProgress?.call('جاري تجهيز قاموس الكلمات…', .38, freshInstall);
+    onProgress?.call('جاري تجهيز الكلمات…', .42, freshInstall);
     await _loadWords();
-    onProgress?.call('جاري استعادة تقدمك وإعداداتك…', .62, freshInstall);
+    onProgress?.call('جاري استعادة تقدمك وإعداداتك…', .72, freshInstall);
     await loadProgress();
-    onProgress?.call('جاري تجهيز النطق والترجمة…', .80, freshInstall);
-    await _configureTts();
-    await _prepareTts();
-    onProgress?.call('جاهز تقريبًا…', .98, freshInstall);
+    onProgress?.call('جاهز…', .98, freshInstall);
   }
 
   Future<void> _loadWords() async {
@@ -352,22 +353,24 @@ class Store extends ChangeNotifier {
     int rank(WordItem w) {
       final en = w.en.toLowerCase();
       final ar = w.ar.toLowerCase();
-      final exEn = w.exampleEn.toLowerCase();
-      final exAr = w.exampleAr.toLowerCase();
       if (en == q || ar == q) return 0;
       if (en.startsWith(q) || ar.startsWith(q)) return 1;
       if (en.contains(q) || ar.contains(q)) return 2;
-      if (q.length >= 3 && _editDistance(en, q) <= (q.length >= 6 ? 2 : 1)) return 3;
-      if (exEn.contains(q) || exAr.contains(q)) return 4;
+      if (q.length >= 3 && (en.length - q.length).abs() <= 2 && _editDistance(en, q) <= (q.length >= 6 ? 2 : 1)) return 3;
+      if (w.exampleEn.toLowerCase().contains(q) || w.exampleAr.toLowerCase().contains(q)) return 4;
       return 99;
     }
-    final result = words.where((w) => rank(w) < 99).toList(growable: false);
-    result.sort((a, b) {
-      final r = rank(a).compareTo(rank(b));
+    final scored = <MapEntry<WordItem, int>>[];
+    for (final word in words) {
+      final r = rank(word);
+      if (r < 99) scored.add(MapEntry(word, r));
+    }
+    scored.sort((a, b) {
+      final r = a.value.compareTo(b.value);
       if (r != 0) return r;
-      return a.en.toLowerCase().compareTo(b.en.toLowerCase());
+      return a.key.en.toLowerCase().compareTo(b.key.en.toLowerCase());
     });
-    return result;
+    return scored.map((e) => e.key).toList(growable: false);
   }
   int masteredGrade(String g) => byGrade(g).where((w) => mastered.contains('${w.id}')).length;
   int lastIndex(String g) => byGrade(g).isEmpty ? 0 : (lastIndexByGrade[g] ?? 0).clamp(0, byGrade(g).length - 1);
@@ -473,7 +476,7 @@ class Store extends ChangeNotifier {
 
   Future<bool> testPronunciation() async {
     if (!sound) return false;
-    return speak('Welcome to Qamoosi AI, the smart dictionary for Arab students');
+    return speak('Welcome to Easy English AI');
   }
 
 
@@ -571,13 +574,13 @@ class Store extends ChangeNotifier {
     };
     final dir = await getTemporaryDirectory();
     final stamp = DateTime.now().toIso8601String().replaceAll(':', '-').split('.').first;
-    final file = File('${dir.path}/qamoosi_backup_$stamp.json');
+    final file = File('${dir.path}/easy_english_ai_backup_$stamp.json');
     return file.writeAsString(const JsonEncoder.withIndent('  ').convert(payload), flush: true);
   }
 
   Future<void> shareBackup() async {
     final file = await createBackupFile();
-    await Share.shareXFiles([XFile(file.path)], subject: 'نسخة احتياطية - قاموسي المدرسي', text: 'نسخة احتياطية كاملة للكلمات والتقدم والملفات الشخصية.');
+    await Share.shareXFiles([XFile(file.path)], subject: 'نسخة احتياطية - Easy English AI', text: 'نسخة احتياطية كاملة للكلمات والتقدم والملفات الشخصية.');
   }
 
 
@@ -596,7 +599,7 @@ class Store extends ChangeNotifier {
     );
     final saved = await FilePicker.platform.saveFile(
       dialogTitle: 'حفظ نسخة احتياطية دائمة',
-      fileName: 'qamoosi_backup_latest.json',
+      fileName: 'easy_english_ai_backup_latest.json',
       type: FileType.custom,
       allowedExtensions: ['json'],
       bytes: bytes,
@@ -878,7 +881,7 @@ class Store extends ChangeNotifier {
       b.writeln([w.grade, esc(w.en), esc(w.ar), esc(w.exampleEn), esc(w.exampleAr), mastered.contains('${w.id}'), difficult.contains('${w.id}'), wrongCounts['${w.id}'] ?? 0].join(','));
     }
     final dir = await getTemporaryDirectory();
-    final file = await File('${dir.path}/qamoosi_words_${DateTime.now().millisecondsSinceEpoch}.csv').writeAsString(b.toString(), flush: true);
+    final file = await File('${dir.path}/easy_english_ai_words_${DateTime.now().millisecondsSinceEpoch}.csv').writeAsString(b.toString(), flush: true);
     await Share.shareXFiles([XFile(file.path)], subject: 'كلمات Easy English AI');
   }
 }
@@ -974,8 +977,8 @@ class _AppBootstrapState extends State<AppBootstrap> {
                   const SizedBox(height: 16),
                   Text(
                     firstInstallPreparing
-                        ? 'في أول تشغيل يحتاج التطبيق إلى لحظات لتجهيز الكلمات والنطق وخدمات الترجمة. الرجاء الانتظار قليلًا ولا تغلق التطبيق.'
-                        : 'نحمّل بياناتك ونجهّز أدوات التعلم. لن يستغرق ذلك طويلًا.',
+                        ? 'يتم تجهيز بيانات التطبيق لأول استخدام. سيبدأ تلقائيًا خلال لحظات.'
+                        : 'نجهّز بياناتك…',
                     textAlign: TextAlign.center,
                     style: const TextStyle(height: 1.55, color: Color(0xff64748b)),
                   ),
@@ -1066,21 +1069,42 @@ class HomeShell extends StatefulWidget {
 
 class _HomeShellState extends State<HomeShell> {
   int index = 0;
-  late final pages = [
+  late final List<Widget?> pages = <Widget?>[
     HomePage(store: widget.store),
-    SmartSearchPage(store: widget.store),
-    CurriculumPage(store: widget.store),
-    LearnHubPage(store: widget.store),
-    MorePage(store: widget.store),
+    null,
+    null,
+    null,
+    null,
   ];
+
+  Widget _createPage(int i) => switch (i) {
+    0 => HomePage(store: widget.store),
+    1 => SmartSearchPage(store: widget.store),
+    2 => CurriculumPage(store: widget.store),
+    3 => LearnHubPage(store: widget.store),
+    _ => MorePage(store: widget.store),
+  };
+
+  void _selectPage(int value) {
+    if (value == index) return;
+    setState(() {
+      pages[value] ??= _createPage(value);
+      index = value;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(child: IndexedStack(index: index, children: pages)),
+      body: SafeArea(
+        child: IndexedStack(
+          index: index,
+          children: List<Widget>.generate(pages.length, (i) => pages[i] ?? const SizedBox.shrink()),
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: index,
-        onDestinationSelected: (v) => setState(() => index = v),
+        onDestinationSelected: _selectPage,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
           NavigationDestination(icon: Icon(Icons.search_rounded), label: 'AI بحث'),
@@ -1114,7 +1138,7 @@ class _SmartSearchPageState extends State<SmartSearchPage> {
   Widget build(BuildContext context) {
     final results = widget.store.smartSearch(query);
     return Scaffold(
-      appBar: AppBar(title: const Text('بحث AI الذكي')),
+      appBar: AppBar(title: const Text('AI بحث')),
       body: Column(children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 8),
@@ -1200,7 +1224,7 @@ class CurriculumPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('المفردات حسب الصف')),
+    appBar: AppBar(title: const Text('الصفوف والمفردات')),
     body: ListView.builder(
       padding: const EdgeInsets.all(16),
       itemCount: grades.length,
@@ -1329,9 +1353,9 @@ class MorePage extends StatelessWidget {
     appBar: AppBar(title: const Text('المزيد')),
     body: ListView(padding: const EdgeInsets.all(16), children: [
       SettingsTile(icon: Icons.auto_awesome_rounded, title: 'استوديو AI للكتاب', subtitle: 'استخرج المفردات والمعاني والجمل من أي كتاب PDF', onTap: () => push(context, BookLabPage(store: store))),
-      SettingsTile(icon: Icons.insights_rounded, title: 'التقدم والإحصائيات', subtitle: 'تابع الكلمات المتقنة والصعبة', onTap: () => push(context, StatsPage(store: store))),
-      SettingsTile(icon: Icons.people_alt_rounded, title: 'ملفات الطلاب', subtitle: 'التبديل بين الطلاب', onTap: () => push(context, ProfilesPage(store: store))),
-      SettingsTile(icon: Icons.settings_rounded, title: 'الإعدادات والملفات', subtitle: 'النطق والاستيراد والنسخ الاحتياطي', onTap: () => push(context, SettingsPage(store: store))),
+      SettingsTile(icon: Icons.insights_rounded, title: 'التقدم', subtitle: 'ملخص واضح للكلمات المتقنة والتي تحتاج مراجعة', onTap: () => push(context, StatsPage(store: store))),
+      SettingsTile(icon: Icons.people_alt_rounded, title: 'الطلاب', subtitle: 'إدارة الملفات والتبديل بين الطلاب', onTap: () => push(context, ProfilesPage(store: store))),
+      SettingsTile(icon: Icons.settings_rounded, title: 'الإعدادات والبيانات', subtitle: 'النطق والاستيراد والنسخ الاحتياطي', onTap: () => push(context, SettingsPage(store: store))),
     ]),
   );
 }
@@ -1553,6 +1577,7 @@ class _BookLabPageState extends State<BookLabPage> {
     }
     setState(() { busy = true; fileName = file.name; candidates = []; pagesRead = 0; });
     try {
+      await ensurePdfRuntime();
       final document = await PdfDocument.openFile(file.path!);
       final pages = <String>[];
       try {
@@ -2158,11 +2183,11 @@ class _FlashCardsPageState extends State<FlashCardsPage> {
                             ]),
                             if (showMeaning) ...[
                               const SizedBox(height: 9),
-                              Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: const Color(0xffdbeafe), borderRadius: BorderRadius.circular(16)), child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, height: 1.3))),
+                              Container(width: double.infinity, padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12), decoration: BoxDecoration(color: const Color(0xffdbeafe), borderRadius: BorderRadius.circular(14)), child: Text(word.ar, textAlign: TextAlign.center, style: const TextStyle(fontSize: 25, fontWeight: FontWeight.w900, height: 1.3))),
                             ],
                             if (hasExample && showExample) ...[
                               const SizedBox(height: 9),
-                              Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xfff3e8ff), borderRadius: BorderRadius.circular(16)), child: Column(children: [
+                              Container(width: double.infinity, padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: const Color(0xfff3e8ff), borderRadius: BorderRadius.circular(14)), child: Column(children: [
                                 if (word.exampleEn.isNotEmpty) Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                                   Expanded(child: Text(word.exampleEn, textDirection: TextDirection.ltr, textAlign: TextAlign.left, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, height: 1.45))),
                                   IconButton(onPressed: () => pronounce(context, word.exampleEn), tooltip: 'لفظ الجملة', icon: const Icon(Icons.volume_up_rounded, size: 21)),
@@ -2700,14 +2725,14 @@ class SettingsPage extends StatelessWidget {
               try {
                 final ok = await store.savePersistentBackupToDevice();
                 if (!context.mounted) return;
-                if (ok) snack(context, 'تم حفظ النسخة الدائمة. احتفظ بملف qamoosi_backup_latest.json في الجهاز');
+                if (ok) snack(context, 'تم حفظ النسخة الدائمة. احتفظ بملف easy_english_ai_backup_latest.json في الجهاز');
               } catch (e) {
                 if (context.mounted) snack(context, 'تعذر حفظ النسخة على الجهاز: $e');
               }
             },
           ),
           SettingsTile(icon: Icons.cloud_upload_outlined, title: 'مشاركة نسخة احتياطية', subtitle: 'إرسال النسخة إلى Drive أو واتساب أو أي مكان آمن', onTap: () async { try { await store.shareBackup(); } catch (e) { if (context.mounted) snack(context, 'تعذر إنشاء النسخة: $e'); } }),
-          SettingsTile(icon: Icons.restore_rounded, title: 'استعادة نسخة من الجهاز', subtitle: 'بعد إعادة التثبيت اختر ملف qamoosi_backup_latest.json أو أي نسخة سابقة', onTap: () => restoreDialog(context)),
+          SettingsTile(icon: Icons.restore_rounded, title: 'استعادة نسخة من الجهاز', subtitle: 'بعد إعادة التثبيت اختر ملف easy_english_ai_backup_latest.json أو أي نسخة سابقة', onTap: () => restoreDialog(context)),
           SettingsTile(icon: Icons.table_view_outlined, title: 'تصدير ملف Excel/CSV', subtitle: 'للمراجعة أو الفتح على الكمبيوتر', onTap: () async { try { await store.exportCsv(); } catch (e) { if (context.mounted) snack(context, 'تعذر التصدير: $e'); } }),
           const SectionTitle('حول التطبيق'),
           const SettingsTile(icon: Icons.info_outline, title: 'Easy English AI', subtitle: 'الإصدار $appVersion • يعمل دون إنترنت'),
