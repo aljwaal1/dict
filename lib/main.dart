@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -17,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.6';
+const appVersion = '3.4.7';
 const qamoosiV340LearningUx = true;
 
 Future<void>? _pdfRuntimeInit;
@@ -1118,10 +1119,20 @@ class SmartSearchPage extends StatefulWidget {
 
 class _SmartSearchPageState extends State<SmartSearchPage> {
   final controller = TextEditingController();
+  Timer? _searchDebounce;
   String query = '';
+
+  void _queueSearch(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 110), () {
+      if (!mounted || value == query) return;
+      setState(() => query = value);
+    });
+  }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     controller.dispose();
     super.dispose();
   }
@@ -1137,13 +1148,13 @@ class _SmartSearchPageState extends State<SmartSearchPage> {
           child: TextField(
             controller: controller,
             autofocus: false,
-            onChanged: (v) => setState(() => query = v),
+            onChanged: _queueSearch,
             decoration: InputDecoration(
               hintText: 'اكتب كلمة بالعربي أو الإنجليزي...',
               prefixIcon: const Icon(Icons.search_rounded),
               suffixIcon: query.isEmpty ? null : IconButton(
                 tooltip: 'مسح',
-                onPressed: () { controller.clear(); setState(() => query = ''); },
+                onPressed: () { _searchDebounce?.cancel(); controller.clear(); if (query.isNotEmpty) setState(() => query = ''); },
                 icon: const Icon(Icons.close_rounded),
               ),
             ),
