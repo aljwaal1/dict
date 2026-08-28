@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:archive/archive.dart';
@@ -18,8 +17,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.5';
-const QAMOOSI_V340_LEARNING_UX = true;
+const appVersion = '3.4.6';
+const qamoosiV340LearningUx = true;
 
 Future<void>? _pdfRuntimeInit;
 Future<void> ensurePdfRuntime() => _pdfRuntimeInit ??= pdfrxFlutterInitialize();
@@ -40,7 +39,7 @@ class QamoosiApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const seed = Color(0xff1769e0);
+    const seed = Color(0xff2563eb);
     final scheme = ColorScheme.fromSeed(seedColor: seed, brightness: Brightness.light);
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -55,7 +54,8 @@ class QamoosiApp extends StatelessWidget {
       theme: ThemeData(
         useMaterial3: true,
         colorScheme: scheme,
-        scaffoldBackgroundColor: const Color(0xfff7f9fc),
+        scaffoldBackgroundColor: const Color(0xfff6f8fc),
+        visualDensity: VisualDensity.standard,
         fontFamily: 'sans',
         appBarTheme: const AppBarTheme(
           elevation: 0,
@@ -67,10 +67,10 @@ class QamoosiApp extends StatelessWidget {
         cardTheme: CardThemeData(
           color: Colors.white,
           elevation: 0,
-          margin: const EdgeInsets.symmetric(vertical: 6),
+          margin: const EdgeInsets.symmetric(vertical: 5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-            side: const BorderSide(color: Color(0xffe3ecfb)),
+            borderRadius: BorderRadius.circular(18),
+            side: const BorderSide(color: Color(0xffe5eaf2)),
           ),
         ),
         inputDecorationTheme: InputDecorationTheme(
@@ -116,12 +116,17 @@ class QamoosiApp extends StatelessWidget {
           ),
         ),
         navigationBarTheme: NavigationBarThemeData(
-          height: 68,
+          height: 64,
           backgroundColor: Colors.white,
           indicatorColor: const Color(0xffdbeafe),
-          elevation: 1,
+          elevation: 0,
           labelTextStyle: const WidgetStatePropertyAll(TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
         ),
+        dividerTheme: const DividerThemeData(color: Color(0xffe8edf5), thickness: 1, space: 1),
+        snackBarTheme: SnackBarThemeData(behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+        dialogTheme: DialogThemeData(backgroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22))),
+        bottomSheetTheme: const BottomSheetThemeData(backgroundColor: Colors.white, showDragHandle: true),
+        listTileTheme: const ListTileThemeData(iconColor: Color(0xff2563eb), textColor: Color(0xff172033)),
       ),
       home: const AppBootstrap(),
     );
@@ -373,7 +378,10 @@ class Store extends ChangeNotifier {
     return scored.map((e) => e.key).toList(growable: false);
   }
   int masteredGrade(String g) => byGrade(g).where((w) => mastered.contains('${w.id}')).length;
-  int lastIndex(String g) => byGrade(g).isEmpty ? 0 : (lastIndexByGrade[g] ?? 0).clamp(0, byGrade(g).length - 1);
+  int lastIndex(String g) {
+    final list = byGrade(g);
+    return list.isEmpty ? 0 : (lastIndexByGrade[g] ?? 0).clamp(0, list.length - 1);
+  }
   List<WordItem> get filteredWords {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return words;
@@ -425,21 +433,9 @@ class Store extends ChangeNotifier {
     final running = _ttsPreparing;
     if (running != null) return running;
     final future = () async {
-      if (!ttsReady && !await _configureTts()) return false;
-      try {
-        await tts.setVolume(0.0);
-        await tts.speak('ready');
-        await Future.delayed(const Duration(milliseconds: 520));
-        await tts.stop();
-        await tts.setVolume(1.0);
-        await Future.delayed(const Duration(milliseconds: 80));
-        _ttsWarmed = true;
-        return true;
-      } catch (_) {
-        try { await tts.setVolume(1.0); } catch (_) {}
-        _ttsWarmed = true;
-        return ttsReady;
-      }
+      final ok = ttsReady || await _configureTts();
+      if (ok) _ttsWarmed = true;
+      return ok;
     }();
     _ttsPreparing = future;
     final ok = await future;
@@ -527,7 +523,7 @@ class Store extends ChangeNotifier {
 
   Future<void> saveLastIndex(String grade, int index) async {
     lastIndexByGrade[grade] = index;
-    await saveProgress();
+    await prefs.setString('$pkey.lastIndex', jsonEncode(lastIndexByGrade));
   }
 
   Future<void> addWord({
@@ -692,10 +688,6 @@ class Store extends ChangeNotifier {
     return _mergeImportedWords(imported);
   }
 
-  String _cellText(dynamic value) {
-    if (value == null) return '';
-    return value.toString().trim();
-  }
 
   String _normalizeHeader(String value) => value
       .trim()
@@ -957,22 +949,22 @@ class _AppBootstrapState extends State<AppBootstrap> {
                 constraints: const BoxConstraints(maxWidth: 440),
                 child: Column(mainAxisSize: MainAxisSize.min, children: [
                   Container(
-                    width: 108,
-                    height: 108,
+                    width: 88,
+                    height: 88,
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primaryContainer,
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(26),
                     ),
-                    child: Icon(Icons.auto_awesome_rounded, size: 58, color: Theme.of(context).colorScheme.primary),
+                    child: Icon(Icons.auto_awesome_rounded, size: 46, color: Theme.of(context).colorScheme.primary),
                   ),
-                  const SizedBox(height: 24),
-                  const Text('Easy English AI', textAlign: TextAlign.center, style: TextStyle(fontSize: 29, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 18),
+                  const Text('Easy English AI', textAlign: TextAlign.center, style: TextStyle(fontSize: 27, fontWeight: FontWeight.w900, letterSpacing: -.4)),
                   const SizedBox(height: 12),
                   Text(bootMessage, textAlign: TextAlign.center, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
                   const SizedBox(height: 18),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(20),
-                    child: LinearProgressIndicator(value: bootProgress.clamp(0, 1), minHeight: 10),
+                    child: LinearProgressIndicator(value: bootProgress.clamp(0, 1), minHeight: 7),
                   ),
                   const SizedBox(height: 16),
                   Text(
@@ -1013,7 +1005,7 @@ class _QamoosiAiOnboardingState extends State<QamoosiAiOnboarding> {
   final items = const [
     (Icons.auto_awesome_rounded, 'Easy English AI', 'تعلم الإنجليزية بسهولة', 'تعلّم الإنجليزية من كلمات مناسبة لصفك مع المعنى والجملة والترجمة والنطق.'),
     (Icons.manage_search_rounded, 'بحث يفهم أخطاء الكتابة', 'اكتب بالعربي أو الإنجليزي', 'البحث الذكي يرتب النتائج ويقترح الكلمات القريبة حتى عند وجود خطأ بسيط في الكتابة.'),
-    (Icons.picture_as_pdf_rounded, 'استوديو AI للكتاب', 'حوّل أي PDF إلى مفردات', 'يستخرج الكلمات التعليمية، ينظف الضوضاء، ثم يستخدم التعلم الآلي لترجمة الكلمات والجمل على جهازك.'),
+    (Icons.picture_as_pdf_rounded, 'استوديو AI للكتاب', 'حوّل أي PDF إلى مفردات', 'يستخرج كلمات الكتاب، ينظف الضوضاء، ثم يجهز المعاني والجمل والترجمة بطريقة واضحة.'),
     (Icons.psychology_alt_rounded, 'مدرب يتعلم من تقدمك', 'مراجعة شخصية لكل طالب', 'يراقب الكلمات الصعبة والأخطاء ويقترح قائمة مراجعة ذكية بدل دراسة كل الكلمات بنفس الطريقة.'),
   ];
 
@@ -1106,11 +1098,11 @@ class _HomeShellState extends State<HomeShell> {
         selectedIndex: index,
         onDestinationSelected: _selectPage,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_rounded), label: 'الرئيسية'),
-          NavigationDestination(icon: Icon(Icons.search_rounded), label: 'AI بحث'),
-          NavigationDestination(icon: Icon(Icons.auto_stories_rounded), label: 'الصفوف'),
-          NavigationDestination(icon: Icon(Icons.extension_rounded), label: 'تدريب'),
-          NavigationDestination(icon: Icon(Icons.grid_view_rounded), label: 'المزيد'),
+          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home_rounded), label: 'الرئيسية'),
+          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search_rounded), label: 'AI بحث'),
+          NavigationDestination(icon: Icon(Icons.auto_stories_outlined), selectedIcon: Icon(Icons.auto_stories_rounded), label: 'الصفوف'),
+          NavigationDestination(icon: Icon(Icons.extension_outlined), selectedIcon: Icon(Icons.extension_rounded), label: 'تدريب'),
+          NavigationDestination(icon: Icon(Icons.grid_view_outlined), selectedIcon: Icon(Icons.grid_view_rounded), label: 'المزيد'),
         ],
       ),
     );
