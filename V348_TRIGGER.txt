@@ -1,0 +1,1 @@
+Trigger v3.4.8 PDF memory and Quick Cards QA build.
