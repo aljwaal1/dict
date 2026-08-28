@@ -25,7 +25,8 @@ required_source=[
     "final pageText = await document.pages[pi].loadText();",
     "final text = pageText?.fullText ?? '';",
     "map.values.toList",
-    "'بطاقات سريعة • ${index + 1} من ${widget.words.length}'",
+    "const Text('بطاقات سريعة')",
+    "Text('${index + 1} من ${widget.words.length}'",
     "bool showMeaning = true;",
     "bool showExample = true;",
 ]
