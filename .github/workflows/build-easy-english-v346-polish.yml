@@ -1,0 +1,103 @@
+name: Build Easy English AI v3.4.6 Polish
+
+on:
+  push:
+    branches: ["easy-english-ai-v346-polish"]
+    paths-ignore:
+      - "release/*.apk"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: easy-english-ai-v346-polish
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: easy-english-ai-v346-polish
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Apply final polish
+        run: python3 tool/upgrade_easy_english_v346_polish.py
+
+      - name: Prepare Android
+        shell: bash
+        run: |
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+          flutter create --platforms=android --org com.explapp .
+          rm -rf test
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
+          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
+          sed -i 's/android:label="[^"]*"/android:label="Easy English AI"/' android/app/src/main/AndroidManifest.xml || true
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Analyze for code errors
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Build Universal APK
+        run: flutter build apk --release
+
+      - name: Verify APK
+        shell: bash
+        run: |
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-release.apk release/easy-english-ai-v3.4.6-universal.apk
+          test -s release/easy-english-ai-v3.4.6-universal.apk
+          ls -lh release/easy-english-ai-v3.4.6-universal.apk
+          sha256sum release/easy-english-ai-v3.4.6-universal.apk
+
+      - name: Persist final source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart pubspec.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "Materialize Easy English AI v3.4.6 polish source"
+            git push origin HEAD:easy-english-ai-v346-polish
+          fi
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-english-ai-v3.4.6-universal-apk
+          path: release/easy-english-ai-v3.4.6-universal.apk
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="easy-english-ai-v3.4.6"
+          FILE="release/easy-english-ai-v3.4.6-universal.apk"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --target easy-english-ai-v346-polish --title "Easy English AI v3.4.6" --notes "Final reliability, responsiveness and visual polish pass only. No new functions: cleaner Material 3 hierarchy, tighter navigation and first-run screen, faster first pronunciation response, lighter flash-card persistence, code cleanup, and preservation of the existing PDF, search, training, progress and backup workflows. Universal Android APK."
+          fi
