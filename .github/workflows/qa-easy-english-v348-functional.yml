@@ -1,0 +1,18 @@
+name: QA Easy English AI v3.4.8 Functional
+
+on:
+  push:
+    branches: ["easy-english-ai-v348-pdf-cards"]
+    paths:
+      - "lib/main.dart"
+      - "tool/qa_v348_functional.py"
+      - ".github/workflows/qa-easy-english-v348-functional.yml"
+  workflow_dispatch:
+
+jobs:
+  functional-qa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Functional regression checks
+        run: python3 tool/qa_v348_functional.py
