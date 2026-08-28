@@ -1,7 +1,7 @@
 name: qamoosi_school
 description: Easy English AI - تعلم الإنجليزية بسهولة بالكلمات والجمل والنطق والتعلم الذكي من PDF.
 publish_to: 'none'
-version: 3.4.7+36
+version: 3.4.8+37
 
 environment:
   sdk: '>=3.4.0 <4.0.0'

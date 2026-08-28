@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.7';
+const appVersion = '3.4.8';
 const qamoosiV340LearningUx = true;
 
 Future<void>? _pdfRuntimeInit;
@@ -1582,53 +1582,57 @@ class _BookLabPageState extends State<BookLabPage> {
     try {
       await ensurePdfRuntime();
       final document = await PdfDocument.openFile(file.path!);
-      final pages = <String>[];
+      final map = <String, BookCandidate>{};
+      String currentUnit = '';
+      String currentLesson = '';
+      var completedPages = 0;
       try {
-        for (final page in document.pages) {
-          final pageText = await page.loadText();
-          pages.add(pageText?.fullText ?? '');
+        for (var pi = 0; pi < document.pages.length; pi++) {
+          final pageText = await document.pages[pi].loadText();
+          final text = pageText?.fullText ?? '';
+          final unitMatch = RegExp(r'\bUnit\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
+          final lessonMatch = RegExp(r'\bLesson\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
+          if (unitMatch != null) { final v = (unitMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'unit') currentUnit = 'Unit $v'; }
+          if (lessonMatch != null) { final v = (lessonMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'lesson') currentLesson = 'Lesson $v'; }
+
+          final tokens = RegExp(r"[A-Za-z][A-Za-z'-]*").allMatches(text).toList();
+          for (var ti = 0; ti < tokens.length; ti++) {
+            final raw = tokens[ti].group(0)!;
+            final prefixStart = tokens[ti].start > 2 ? tokens[ti].start - 2 : 0;
+            final prefix = text.substring(prefixStart, tokens[ti].start);
+            final startsSentence = ti == 0 || RegExp(r'[.!?]\s*$').hasMatch(prefix);
+            if (!_validWord(raw, midSentenceTitleCase: !startsSentence)) continue;
+            final key = raw.toLowerCase();
+            final existing = _existingWord(raw);
+            final found = map[key];
+            if (found != null) {
+              found.frequency++;
+              if (found.exampleEn.isEmpty) found.exampleEn = _sentenceFor(text, raw);
+            } else {
+              map[key] = BookCandidate(
+                word: raw.toLowerCase(),
+                meaning: existing?.ar ?? '',
+                exampleEn: _sentenceFor(text, raw),
+                exampleAr: existing?.exampleAr ?? '',
+                unit: currentUnit,
+                lesson: currentLesson,
+                page: '${pi + 1}',
+              );
+            }
+          }
+          completedPages = pi + 1;
+          if (mounted && (completedPages == 1 || completedPages % 4 == 0 || completedPages == document.pages.length)) {
+            setState(() {
+              pagesRead = completedPages;
+              candidates = map.values.toList(growable: true);
+            });
+          }
         }
       } finally {
         await document.dispose();
       }
-      final map = <String, BookCandidate>{};
-      String currentUnit = '';
-      String currentLesson = '';
-      for (var pi = 0; pi < pages.length; pi++) {
-        final text = pages[pi];
-        final unitMatch = RegExp(r'\bUnit\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
-        final lessonMatch = RegExp(r'\bLesson\s+([0-9]+|[A-Za-z]+)', caseSensitive: false).firstMatch(text);
-        if (unitMatch != null) { final v = (unitMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'unit') currentUnit = 'Unit $v'; }
-        if (lessonMatch != null) { final v = (lessonMatch.group(1) ?? '').trim(); if (v.isNotEmpty && v.toLowerCase() != 'lesson') currentLesson = 'Lesson $v'; }
-
-        final tokens = RegExp(r"[A-Za-z][A-Za-z'-]*").allMatches(text).toList();
-        for (var ti = 0; ti < tokens.length; ti++) {
-          final raw = tokens[ti].group(0)!;
-          final prefixStart = tokens[ti].start > 2 ? tokens[ti].start - 2 : 0;
-          final prefix = text.substring(prefixStart, tokens[ti].start);
-          final startsSentence = ti == 0 || RegExp(r'[.!?]\s*$').hasMatch(prefix);
-          if (!_validWord(raw, midSentenceTitleCase: !startsSentence)) continue;
-          final key = raw.toLowerCase();
-          final existing = _existingWord(raw);
-          final found = map[key];
-          if (found != null) {
-            found.frequency++;
-            if (found.exampleEn.isEmpty) found.exampleEn = _sentenceFor(text, raw);
-          } else {
-            map[key] = BookCandidate(
-              word: raw.toLowerCase(),
-              meaning: existing?.ar ?? '',
-              exampleEn: _sentenceFor(text, raw),
-              exampleAr: existing?.exampleAr ?? '',
-              unit: currentUnit,
-              lesson: currentLesson,
-              page: '${pi + 1}',
-            );
-          }
-        }
-      }
       final list = map.values.toList(growable: true);
-      setState(() { candidates = list; pagesRead = pages.length; });
+      if (mounted) setState(() { candidates = list; pagesRead = completedPages; });
       if (list.isNotEmpty) {
         await _fillQualityExamples(list);
         await _autoFillMeanings(list);
@@ -2795,8 +2799,8 @@ class WordCardPage extends StatefulWidget {
 
 class _WordCardPageState extends State<WordCardPage> {
   late int index;
-  bool showMeaning = false;
-  bool showExample = false;
+  bool showMeaning = true;
+  bool showExample = true;
 
   @override
   void initState() {
@@ -2808,8 +2812,8 @@ class _WordCardPageState extends State<WordCardPage> {
     setState(() {
       index = (index + delta) % widget.words.length;
       if (index < 0) index += widget.words.length;
-      showMeaning = false;
-      showExample = false;
+      showMeaning = true;
+      showExample = true;
     });
   }
 
@@ -2823,7 +2827,7 @@ class _WordCardPageState extends State<WordCardPage> {
     final word = widget.words[index];
     final hasExample = word.exampleEn.isNotEmpty || word.exampleAr.isNotEmpty;
     return Scaffold(
-      appBar: AppBar(title: Text('بطاقة الكلمة ${index + 1} / ${widget.words.length}')),
+      appBar: AppBar(title: Column(mainAxisSize: MainAxisSize.min, children: [const Text('بطاقات سريعة'), Text('${index + 1} من ${widget.words.length}', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700))])),
       body: SafeArea(
         child: GestureDetector(
           onHorizontalDragEnd: (details) {
