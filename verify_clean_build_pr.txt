@@ -1,0 +1,1 @@
+Re-run direct clean-source APK build after structural onboarding cleanup.
