@@ -1,0 +1,112 @@
+name: Build Easy English AI v3.5.3 Android Parity
+
+on:
+  push:
+    branches: ["easy-english-ai-v353-android-parity"]
+    paths-ignore:
+      - "release/*.apk"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: easy-english-ai-v353-android-parity
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: easy-english-ai-v353-android-parity
+          fetch-depth: 0
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply Android parity upgrade
+        run: python3 tool/upgrade_easy_english_v353_android_parity.py
+      - name: Verify parity source
+        shell: bash
+        run: |
+          grep -q "const appVersion = '3.5.3'" lib/main.dart
+          grep -q "recentMistakes" lib/main.dart
+          grep -q "case 'lesson':" lib/main.dart
+          grep -q "case 'difficult':" lib/main.dart
+          grep -q "case 'mistakes':" lib/main.dart
+          grep -q "case 'notmastered':" lib/main.dart
+          grep -q "case 'smartmix':" lib/main.dart
+          grep -q "إعادة الأخطاء فقط" lib/main.dart
+          grep -q "pickAndAnalyzePdf" lib/main.dart
+          grep -q "document.dispose" lib/main.dart
+          grep -q "completedPages % 4" lib/main.dart
+          grep -q "restoreBackup" lib/main.dart
+          grep -q "savePersistentBackupToDevice" lib/main.dart
+          grep -q "smartSearch" lib/main.dart
+          grep -q "ProfilesPage" lib/main.dart
+          grep -q "version: 3.5.3+38" pubspec.yaml
+      - name: Prepare Android
+        shell: bash
+        run: |
+          yes | ${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+          flutter create --platforms=android --org com.explapp .
+          rm -rf test
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
+          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
+          sed -i 's/android:label="[^"]*"/android:label="Easy English AI"/' android/app/src/main/AndroidManifest.xml || true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Analyze for code errors
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build Universal APK
+        run: flutter build apk --release
+      - name: Verify Universal APK
+        shell: bash
+        run: |
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-release.apk release/easy-english-ai-v3.5.3-universal.apk
+          test -s release/easy-english-ai-v3.5.3-universal.apk
+          file release/easy-english-ai-v3.5.3-universal.apk
+          sha256sum release/easy-english-ai-v3.5.3-universal.apk
+      - name: Persist final source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart pubspec.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "Materialize Easy English AI Android v3.5.3 parity"
+            git push origin HEAD:easy-english-ai-v353-android-parity
+          fi
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-english-ai-v3.5.3-universal-apk
+          path: release/easy-english-ai-v3.5.3-universal.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="easy-english-ai-v3.5.3"
+          FILE="release/easy-english-ai-v3.5.3-universal.apk"
+          NOTES="Android parity release aligned with the unified PWA learning model: lesson quizzes, difficult-only, recent mistakes, not-mastered, smart mixed review, repeat-wrong quiz, per-profile recent mistakes, while preserving native Flutter architecture, page-by-page PDF processing, backups, profiles, search and TTS. Universal Android APK."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --target easy-english-ai-v353-android-parity --title "Easy English AI v3.5.3" --notes "$NOTES"
+          fi
