@@ -18,7 +18,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.4.8';
+const appVersion = '3.5.3';
 const qamoosiV340LearningUx = true;
 
 Future<void>? _pdfRuntimeInit;
@@ -209,6 +209,7 @@ class Store extends ChangeNotifier {
   Set<String> difficult = {};
   Set<String> studied = {};
   Map<String, int> wrongCounts = {};
+  List<String> recentMistakes = [];
   Map<String, int> lastIndexByGrade = {};
   String query = '';
 
@@ -287,6 +288,7 @@ class Store extends ChangeNotifier {
     difficult = (prefs.getStringList('$pkey.difficult') ?? []).toSet();
     studied = (prefs.getStringList('$pkey.studied') ?? []).toSet();
     wrongCounts = _readMap('$pkey.wrongCounts');
+    recentMistakes = prefs.getStringList('$pkey.recentMistakes') ?? <String>[];
     lastIndexByGrade = _readMap('$pkey.lastIndex');
     points = prefs.getDouble('$pkey.points') ?? 0;
     notifyListeners();
@@ -307,6 +309,7 @@ class Store extends ChangeNotifier {
       prefs.setStringList('$pkey.difficult', difficult.toList()),
       prefs.setStringList('$pkey.studied', studied.toList()),
       prefs.setString('$pkey.wrongCounts', jsonEncode(wrongCounts)),
+      prefs.setStringList('$pkey.recentMistakes', recentMistakes),
       prefs.setString('$pkey.lastIndex', jsonEncode(lastIndexByGrade)),
       prefs.setDouble('$pkey.points', points),
     ]);
@@ -516,8 +519,12 @@ class Store extends ChangeNotifier {
       mastered.add('${word.id}');
       difficult.remove('${word.id}');
     } else {
-      difficult.add('${word.id}');
-      wrongCounts['${word.id}'] = (wrongCounts['${word.id}'] ?? 0) + 1;
+      final id = '${word.id}';
+      difficult.add(id);
+      wrongCounts[id] = (wrongCounts[id] ?? 0) + 1;
+      recentMistakes.remove(id);
+      recentMistakes.insert(0, id);
+      if (recentMistakes.length > 40) recentMistakes = recentMistakes.take(40).toList(growable: true);
     }
     await saveProgress();
   }
@@ -2240,9 +2247,11 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
   String grade = '1';
   String mode = 'random';
   String unit = '';
+  String lesson = '';
   int count = 20;
 
   List<String> get units => widget.store.byGrade(grade).map((w) => w.unit.trim()).where((v) => v.isNotEmpty).toSet().toList()..sort();
+  List<String> get lessons => widget.store.byGrade(grade).where((w) => unit.isEmpty || w.unit == unit).map((w) => w.lesson.trim()).where((v) => v.isNotEmpty).toSet().toList()..sort();
 
   int _pageNumber(WordItem w) => int.tryParse(RegExp(r'\d+').firstMatch(w.sourcePage)?.group(0) ?? '') ?? 999999;
 
@@ -2265,6 +2274,37 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
       case 'unit':
         list = widget.store.byGrade(grade).where((w) => w.unit == unit).toList();
         break;
+      case 'lesson':
+        list = widget.store.byGrade(grade).where((w) => (unit.isEmpty || w.unit == unit) && w.lesson == lesson).toList();
+        break;
+      case 'difficult':
+        list = widget.store.byGrade(grade).where((w) => widget.store.difficult.contains('${w.id}')).toList();
+        list.sort((a, b) => widget.store.difficultyScore(b).compareTo(widget.store.difficultyScore(a)));
+        break;
+      case 'mistakes':
+        final ids = widget.store.recentMistakes;
+        final byId = {for (final w in widget.store.byGrade(grade)) '${w.id}': w};
+        list = ids.map((id) => byId[id]).whereType<WordItem>().toList();
+        break;
+      case 'notmastered':
+        list = widget.store.byGrade(grade).where((w) => !widget.store.mastered.contains('${w.id}')).toList();
+        break;
+      case 'smartmix':
+        final pool = widget.store.byGrade(grade);
+        final errors = pool.where((w) => (widget.store.wrongCounts['${w.id}'] ?? 0) > 0).toList()..sort((a,b) => widget.store.difficultyScore(b).compareTo(widget.store.difficultyScore(a)));
+        final fresh = pool.where((w) => !widget.store.studied.contains('${w.id}')).toList()..shuffle();
+        final hard = pool.where((w) => widget.store.difficult.contains('${w.id}') && !errors.contains(w)).toList()..sort((a,b) => widget.store.difficultyScore(b).compareTo(widget.store.difficultyScore(a)));
+        final masteredPool = pool.where((w) => widget.store.mastered.contains('${w.id}')).toList()..shuffle();
+        final target = count > 0 ? count : pool.length;
+        final picked = <WordItem>[];
+        void addUnique(Iterable<WordItem> src, int n) { for (final w in src) { if (!picked.contains(w)) picked.add(w); if (picked.length >= n) break; } }
+        addUnique(errors, (target * .40).ceil());
+        addUnique(fresh, (target * .70).ceil());
+        addUnique(hard, (target * .90).ceil());
+        addUnique(masteredPool, target);
+        if (picked.length < target) addUnique(pool..shuffle(), target);
+        list = picked;
+        break;
       case 'easy':
         list = List<WordItem>.from(widget.store.byGrade(grade));
         list.sort((a, b) => widget.store.difficultyScore(a).compareTo(widget.store.difficultyScore(b)));
@@ -2283,6 +2323,11 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
     'random': 'عشوائي',
     'pdf': 'حسب ترتيب PDF',
     'unit': 'حسب الوحدة',
+    'lesson': 'حسب الدرس',
+    'difficult': 'الكلمات الصعبة فقط',
+    'mistakes': 'أخطائي الأخيرة',
+    'notmastered': 'غير المتقنة فقط',
+    'smartmix': 'مختلط ذكي',
     'easy': 'من الأسهل إلى الأصعب',
     'studied': 'الكلمات التي درستها',
     'comprehensive': 'شامل كل الصفوف',
@@ -2291,6 +2336,10 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
   void _start() {
     if (mode == 'unit' && unit.isEmpty) {
       snack(context, 'اختر الوحدة أولاً');
+      return;
+    }
+    if (mode == 'lesson' && lesson.isEmpty) {
+      snack(context, 'اختر الدرس أولاً');
       return;
     }
     final q = _questions();
@@ -2305,7 +2354,9 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
   @override
   Widget build(BuildContext context) {
     final unitList = units;
+    final lessonList = lessons;
     if (unit.isNotEmpty && !unitList.contains(unit)) unit = '';
+    if (lesson.isNotEmpty && !lessonList.contains(lesson)) lesson = '';
     return Scaffold(
       appBar: AppBar(title: const Text('إعداد الاختبار')),
       body: ListView(padding: const EdgeInsets.all(16), children: [
@@ -2327,7 +2378,7 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
         if (mode != 'comprehensive') DropdownButtonFormField<String>(
           value: grade,
           items: grades.map((g) => DropdownMenuItem(value: g, child: Text(gradeName(g)))).toList(),
-          onChanged: (v) => setState(() { grade = v ?? grade; unit = ''; }),
+          onChanged: (v) => setState(() { grade = v ?? grade; unit = ''; lesson = ''; }),
           decoration: const InputDecoration(labelText: 'الصف'),
         ),
         if (mode != 'comprehensive') const SizedBox(height: 10),
@@ -2337,20 +2388,34 @@ class _QuizSetupPageState extends State<QuizSetupPage> {
             DropdownMenuItem(value: 'random', child: Text('عشوائي')),
             DropdownMenuItem(value: 'pdf', child: Text('حسب ترتيب ظهور الكلمات في PDF')),
             DropdownMenuItem(value: 'unit', child: Text('حسب الوحدة')),
+            DropdownMenuItem(value: 'lesson', child: Text('حسب الدرس')),
+            DropdownMenuItem(value: 'difficult', child: Text('الكلمات الصعبة فقط')),
+            DropdownMenuItem(value: 'mistakes', child: Text('أخطائي الأخيرة')),
+            DropdownMenuItem(value: 'notmastered', child: Text('غير المتقنة فقط')),
+            DropdownMenuItem(value: 'smartmix', child: Text('مختلط ذكي')),
             DropdownMenuItem(value: 'easy', child: Text('حسب السهولة')),
             DropdownMenuItem(value: 'studied', child: Text('حسب الكلمات المدروسة على الجهاز')),
             DropdownMenuItem(value: 'comprehensive', child: Text('شامل - جميع الصفوف')),
           ],
-          onChanged: (v) => setState(() { mode = v ?? mode; unit = ''; }),
+          onChanged: (v) => setState(() { mode = v ?? mode; unit = ''; lesson = ''; }),
           decoration: const InputDecoration(labelText: 'نوع الاختبار'),
         ),
-        if (mode == 'unit') ...[
+        if (mode == 'unit' || mode == 'lesson') ...[
           const SizedBox(height: 10),
           DropdownButtonFormField<String>(
             value: unit.isEmpty ? null : unit,
             items: unitList.map((u) => DropdownMenuItem(value: u, child: Text(u))).toList(),
-            onChanged: (v) => setState(() => unit = v ?? ''),
+            onChanged: (v) => setState(() { unit = v ?? ''; lesson = ''; }),
             decoration: const InputDecoration(labelText: 'الوحدة'),
+          ),
+        ],
+        if (mode == 'lesson') ...[
+          const SizedBox(height: 10),
+          DropdownButtonFormField<String>(
+            value: lesson.isEmpty ? null : lesson,
+            items: lessonList.map((l) => DropdownMenuItem(value: l, child: Text(l))).toList(),
+            onChanged: (v) => setState(() => lesson = v ?? ''),
+            decoration: const InputDecoration(labelText: 'الدرس'),
           ),
         ],
         const SizedBox(height: 10),
@@ -2444,6 +2509,14 @@ class _QuizPageState extends State<QuizPage> {
         )),
       ],
       const SizedBox(height: 16),
+      if (wrong.isNotEmpty) ...[
+        OutlinedButton.icon(
+          onPressed: () => push(context, QuizPage(store: widget.store, questions: wrong, title: 'إعادة الأخطاء فقط')),
+          icon: const Icon(Icons.replay_rounded),
+          label: const Text('إعادة الأخطاء فقط'),
+        ),
+        const SizedBox(height: 8),
+      ],
       FilledButton.icon(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.done_all_rounded), label: const Text('إنهاء الاختبار')),
     ]);
   }
