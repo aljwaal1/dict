@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "com.explapp.qamoosi_school"
+    namespace = "com.explapp.jordan_school_dictionary"
     compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
