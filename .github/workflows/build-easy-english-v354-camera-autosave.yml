@@ -1,4 +1,4 @@
-name: Build Easy English AI v3.5.4 Camera Autosave
+name: Build Easy English AI v3.5.5 Install Fix
 
 on:
   push:
@@ -35,13 +35,13 @@ jobs:
         with:
           channel: stable
           cache: true
-      - name: Apply v3.5.4 upgrade
+      - name: Apply camera autosave upgrade
         run: python3 tool/upgrade_easy_english_v354_camera_autosave.py
       - name: Verify source features
         shell: bash
         run: |
-          grep -q "const appVersion = '3.5.4'" lib/main.dart
-          grep -q "version: 3.5.4+39" pubspec.yaml
+          grep -q "const appVersion = '3.5.5'" lib/main.dart
+          grep -q "version: 3.5.5+40" pubspec.yaml
           grep -q "image_picker:" pubspec.yaml
           grep -q "google_mlkit_text_recognition:" pubspec.yaml
           grep -q "pickAndAnalyzeImages" lib/main.dart
@@ -64,37 +64,61 @@ jobs:
           rm -rf test
           sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
+          sed -i 's/namespace = ".*"/namespace = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
           sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
           sed -i 's/android:label="[^"]*"/android:label="Easy English AI"/' android/app/src/main/AndroidManifest.xml || true
+          mkdir -p android/app/src/main/kotlin/com/explapp/jordan_school_dictionary
+          cat > android/app/src/main/kotlin/com/explapp/jordan_school_dictionary/MainActivity.kt <<'EOF'
+          package com.explapp.jordan_school_dictionary
+
+          import io.flutter.embedding.android.FlutterActivity
+
+          class MainActivity : FlutterActivity()
+          EOF
+          rm -rf android/app/src/main/kotlin/com/explapp/qamoosi_school
       - name: Resolve dependencies
         run: flutter pub get
       - name: Analyze
         run: flutter analyze --no-fatal-infos --no-fatal-warnings
-      - name: Build Universal APK
-        run: flutter build apk --release
-      - name: Verify APK
+      - name: Build APKs
+        run: |
+          flutter build apk --release
+          flutter build apk --release --split-per-abi
+      - name: Verify APKs
         shell: bash
         run: |
           mkdir -p release
-          cp build/app/outputs/flutter-apk/app-release.apk release/easy-english-ai-v3.5.4-universal.apk
-          test -s release/easy-english-ai-v3.5.4-universal.apk
-          file release/easy-english-ai-v3.5.4-universal.apk
-          sha256sum release/easy-english-ai-v3.5.4-universal.apk
+          cp build/app/outputs/flutter-apk/app-release.apk release/easy-english-ai-v3.5.5-universal.apk
+          cp build/app/outputs/flutter-apk/app-arm64-v8a-release.apk release/easy-english-ai-v3.5.5-arm64-v8a.apk
+          test -s release/easy-english-ai-v3.5.5-universal.apk
+          test -s release/easy-english-ai-v3.5.5-arm64-v8a.apk
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose --print-certs release/easy-english-ai-v3.5.5-universal.apk
+          $ANDROID_HOME/build-tools/36.0.0/apksigner verify --verbose --print-certs release/easy-english-ai-v3.5.5-arm64-v8a.apk
+          $ANDROID_HOME/build-tools/36.0.0/aapt dump badging release/easy-english-ai-v3.5.5-universal.apk | tee /tmp/universal-badging.txt
+          $ANDROID_HOME/build-tools/36.0.0/aapt dump badging release/easy-english-ai-v3.5.5-arm64-v8a.apk | tee /tmp/arm64-badging.txt
+          grep -q "package: name='com.explapp.jordan_school_dictionary'" /tmp/universal-badging.txt
+          grep -q "package: name='com.explapp.jordan_school_dictionary'" /tmp/arm64-badging.txt
+          grep -q "versionCode='40'" /tmp/universal-badging.txt
+          grep -q "versionName='3.5.5'" /tmp/universal-badging.txt
+          grep -q "native-code: 'arm64-v8a'" /tmp/arm64-badging.txt
+          sha256sum release/easy-english-ai-v3.5.5-*.apk
       - name: Persist final source
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add lib/main.dart pubspec.yaml
+          git add lib/main.dart pubspec.yaml android/app/build.gradle.kts android/app/src/main/AndroidManifest.xml android/app/src/main/kotlin
           if ! git diff --cached --quiet; then
-            git commit -m "Materialize Easy English AI Android v3.5.4 camera autosave"
+            git commit -m "Materialize Easy English AI Android v3.5.5 install fix"
             git push origin HEAD:easy-english-ai-v354-camera-autosave
           fi
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: easy-english-ai-v3.5.4-universal-apk
-          path: release/easy-english-ai-v3.5.4-universal.apk
+          name: easy-english-ai-v3.5.5-apks
+          path: |
+          release/easy-english-ai-v3.5.5-universal.apk
+          release/easy-english-ai-v3.5.5-arm64-v8a.apk
           if-no-files-found: error
           retention-days: 30
       - name: Publish GitHub Release
@@ -102,11 +126,12 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
-          TAG="easy-english-ai-v3.5.4"
-          FILE="release/easy-english-ai-v3.5.4-universal.apk"
-          NOTES="Android v3.5.4 adds progressive autosave for long Book Lab work, resume of the latest saved draft, direct camera capture, multi-image gallery import, on-device OCR, while preserving PDF page-by-page processing and the v3.5.3 adaptive learning features."
+          TAG="easy-english-ai-v3.5.5"
+          FILE1="release/easy-english-ai-v3.5.5-arm64-v8a.apk"
+          FILE2="release/easy-english-ai-v3.5.5-universal.apk"
+          NOTES="Android v3.5.5 install-fix release: canonical package namespace, verified APK signatures and badging, ARM64 and universal builds, camera/gallery OCR, PDF processing, and progressive autosave."
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$FILE" --clobber
+            gh release upload "$TAG" "$FILE1" "$FILE2" --clobber
           else
-            gh release create "$TAG" "$FILE" --target easy-english-ai-v354-camera-autosave --title "Easy English AI v3.5.4" --notes "$NOTES"
+            gh release create "$TAG" "$FILE1" "$FILE2" --target easy-english-ai-v354-camera-autosave --title "Easy English AI v3.5.5" --notes "$NOTES"
           fi
