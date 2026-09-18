@@ -368,5 +368,5 @@ JS.write_text(s,encoding='utf-8')
 
 p=p.replace("version: 3.5.3+38","version: 3.5.4+39")
 if "image_picker:" not in p:
-    p=p.replace("  http: ^1.2.2\n", "  http: ^1.2.2\n  image_picker: ^1.1.2\n  google_mlkit_text_recognition: ^0.15.0\n")
+    p=p.replace("  http: ^1.2.2\n", "  http: ^1.2.2\n  image_picker: ^1.1.2\n  google_mlkit_text_recognition: ^0.17.0\n")
 PUB.write_text(p,encoding='utf-8')
