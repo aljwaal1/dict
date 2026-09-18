@@ -20,7 +20,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xml/xml.dart';
 
 const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
-const appVersion = '3.5.4';
+const appVersion = '3.5.5';
 const qamoosiV340LearningUx = true;
 
 Future<void>? _pdfRuntimeInit;
