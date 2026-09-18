@@ -117,8 +117,8 @@ jobs:
         with:
           name: easy-english-ai-v3.5.5-apks
           path: |
-          release/easy-english-ai-v3.5.5-universal.apk
-          release/easy-english-ai-v3.5.5-arm64-v8a.apk
+            release/easy-english-ai-v3.5.5-universal.apk
+            release/easy-english-ai-v3.5.5-arm64-v8a.apk
           if-no-files-found: error
           retention-days: 30
       - name: Publish GitHub Release
