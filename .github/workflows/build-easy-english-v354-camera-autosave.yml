@@ -1,0 +1,112 @@
+name: Build Easy English AI v3.5.4 Camera Autosave
+
+on:
+  push:
+    branches: ["easy-english-ai-v354-camera-autosave"]
+    paths-ignore:
+      - "release/*.apk"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: easy-english-ai-v354-camera-autosave
+  cancel-in-progress: true
+
+jobs:
+  build:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: easy-english-ai-v354-camera-autosave
+          fetch-depth: 0
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+      - name: Apply v3.5.4 upgrade
+        run: python3 tool/upgrade_easy_english_v354_camera_autosave.py
+      - name: Verify source features
+        shell: bash
+        run: |
+          grep -q "const appVersion = '3.5.4'" lib/main.dart
+          grep -q "version: 3.5.4+39" pubspec.yaml
+          grep -q "image_picker:" pubspec.yaml
+          grep -q "google_mlkit_text_recognition:" pubspec.yaml
+          grep -q "pickAndAnalyzeImages" lib/main.dart
+          grep -q "ImageSource.camera" lib/main.dart
+          grep -q "pickMultiImage" lib/main.dart
+          grep -q "TextRecognizer" lib/main.dart
+          grep -q "booklab_latest_draft" lib/main.dart
+          grep -q "استعادة آخر عمل محفوظ" lib/main.dart
+          grep -q "reading-pdf" lib/main.dart
+          grep -q "ocr-camera" lib/main.dart
+          grep -q "on-device-translation" lib/main.dart
+          grep -q "recentMistakes" lib/main.dart
+          grep -q "case 'smartmix':" lib/main.dart
+          grep -q "document.dispose" lib/main.dart
+      - name: Prepare Android
+        shell: bash
+        run: |
+          yes | \${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager "platforms;android-36" "build-tools;36.0.0" || true
+          flutter create --platforms=android --org com.explapp .
+          rm -rf test
+          sed -i 's/compileSdk = flutter.compileSdkVersion/compileSdk = 36/' android/app/build.gradle.kts || true
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 23/' android/app/build.gradle.kts || true
+          sed -i 's/applicationId = ".*"/applicationId = "com.explapp.jordan_school_dictionary"/' android/app/build.gradle.kts || true
+          sed -i 's/android:label="[^"]*"/android:label="Easy English AI"/' android/app/src/main/AndroidManifest.xml || true
+      - name: Resolve dependencies
+        run: flutter pub get
+      - name: Analyze
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+      - name: Build Universal APK
+        run: flutter build apk --release
+      - name: Verify APK
+        shell: bash
+        run: |
+          mkdir -p release
+          cp build/app/outputs/flutter-apk/app-release.apk release/easy-english-ai-v3.5.4-universal.apk
+          test -s release/easy-english-ai-v3.5.4-universal.apk
+          file release/easy-english-ai-v3.5.4-universal.apk
+          sha256sum release/easy-english-ai-v3.5.4-universal.apk
+      - name: Persist final source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib/main.dart pubspec.yaml
+          if ! git diff --cached --quiet; then
+            git commit -m "Materialize Easy English AI Android v3.5.4 camera autosave"
+            git push origin HEAD:easy-english-ai-v354-camera-autosave
+          fi
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: easy-english-ai-v3.5.4-universal-apk
+          path: release/easy-english-ai-v3.5.4-universal.apk
+          if-no-files-found: error
+          retention-days: 30
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: \${{ github.token }}
+        shell: bash
+        run: |
+          TAG="easy-english-ai-v3.5.4"
+          FILE="release/easy-english-ai-v3.5.4-universal.apk"
+          NOTES="Android v3.5.4 adds progressive autosave for long Book Lab work, resume of the latest saved draft, direct camera capture, multi-image gallery import, on-device OCR, while preserving PDF page-by-page processing and the v3.5.3 adaptive learning features."
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$FILE" --clobber
+          else
+            gh release create "$TAG" "$FILE" --target easy-english-ai-v354-camera-autosave --title "Easy English AI v3.5.4" --notes "$NOTES"
+          fi
